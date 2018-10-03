@@ -20,10 +20,9 @@ let lexbuf outchan nml = (* バッファをコンパイルしてチャンネル�
                 (iter !limit
                    (Alpha.f nml))))))
 
-let lexbuf' outchan stx = lexbuf outchan (KNormal.f (Typing.f stx))
-let lexbuf'' outchan buf = lexbuf' outchan (Parser.exp Lexer.token buf)
+let lexbuf' outchan buf = lexbuf outchan (KNormal.f (Typing.f (Parser.exp Lexer.token buf)))
 
-let string s = lexbuf'' stdout (Lexing.from_string s) (* 文字列をコンパイルして標準出力に表示する (caml2html: main_string) *)
+let string s = lexbuf' stdout (Lexing.from_string s) (* 文字列をコンパイルして標準出力に表示する (caml2html: main_string) *)
 
 let file f = (* ファイルをコンパイルしてファイルに出力する (caml2html: main_file) *)
   let inchan = open_in (f ^ ".ml") in
