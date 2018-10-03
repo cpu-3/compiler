@@ -60,12 +60,8 @@ and g' oc = function (* 各命令のアセンブリ生成 (caml2html: emit_gprim
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
   | NonTail(_), Nop -> () (* ok *)
   | NonTail(x), Li(i) -> Printf.fprintf oc "\taddi\t%s, x0, %d\n" (reg x) i (* ok *)
-  | NonTail(x), FLi(Id.L(l)) ->
-      let s = load_label (reg reg_tmp) l in
-      Printf.fprintf oc "%s\tlfd\t%s, 0(%s)\n" s (reg x) (reg reg_tmp)
-  | NonTail(x), SetL(Id.L(y)) ->
-      let s = load_label x y in
-      Printf.fprintf oc "%s" s
+  | NonTail(x), FLi(Id.L(l)) -> Printf.fprintf oc "\tflw\t%s, 0(%s)\n" (reg x) (reg l) (* ok *)
+  | NonTail(x), SetL(Id.L(y)) -> Printf.fprintf oc "\tfadd\t%s, x0, %s\n" (reg x) (reg l) (* ok *)
   | NonTail(x), Mr(y) when x = y -> () (* ok *)
   | NonTail(x), Mr(y) -> Printf.fprintf oc "\taddi\t%s, %s, 0\n" (reg x) (reg y) (* ok *)
   | NonTail(x), Neg(y) -> Printf.fprintf oc "\tsub\t%s, x0, %s\n" (reg x) (reg y) (* ok *)
@@ -94,17 +90,17 @@ and g' oc = function (* 各命令のアセンブリ生成 (caml2html: emit_gprim
   (* 退避の仮想命令の実装 (caml2html: emit_save) *)
   | NonTail(_), Save(x, y) when List.mem x allregs && not (S.mem y !stackset) ->
       save y;
-      Printf.fprintf oc "\tstw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
+      Printf.fprintf oc "\tsw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp) (* ok *)
   | NonTail(_), Save(x, y) when List.mem x allfregs && not (S.mem y !stackset) ->
       savef y;
-      Printf.fprintf oc "\tstfd\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
+      Printf.fprintf oc "\tfsw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp) (* ok *)
   | NonTail(_), Save(x, y) -> assert (S.mem y !stackset); ()
   (* 復帰の仮想命令の実装 (caml2html: emit_restore) *)
   | NonTail(x), Restore(y) when List.mem x allregs ->
-      Printf.fprintf oc "\tlwz\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
+      Printf.fprintf oc "\tlw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp) (* ok *)
   | NonTail(x), Restore(y) ->
       assert (List.mem x allfregs);
-      Printf.fprintf oc "\tlfd\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
+      Printf.fprintf oc "\tflw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp) (* ok *)
   (* 末尾だったら計算結果を第一レジスタにセットしてリターン (caml2html: emit_tailret) *)
   | Tail, (Nop | Stw _ | Stfd _ | Comment _ | Save _ as exp) ->
       g' oc (NonTail(Id.gentmp Type.Unit), exp);
