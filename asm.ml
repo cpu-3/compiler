@@ -44,20 +44,21 @@ let fletd(x, e1, e2) = Let((x, Type.Float), e1, e2)
 let seq(e1, e2) = Let((Id.gentmp Type.Unit, Type.Unit), e1, e2)
 
 let regs = (* Array.init 27 (fun i -> Printf.sprintf "_R_%d" i) *)
-  [| "x1"; "x3"; "x4"; "x7"; "x8"; "x9"; "x10";
-     "x11"; "x12"; "x13"; "x14"; "x15"; "x16"; "x17"; "x18";
-     "x19"; "x20"; "x21"; "x22"; "x23"; "x24"; "x25"; "x26";
-     "x27"; "x28"; "x29"; "x30" |]
-let fregs = Array.init 32 (fun i -> Printf.sprintf "f%d" i)
+  [| "%x4"; "%x5"; "%x7"; "%x8"; "%x9"; "%x10";
+     "%x11"; "%x12"; "%x13"; "%x14"; "%x15"; "%x16"; "%x17"; "%x18";
+     "%x19"; "%x20"; "%x21"; "%x22"; "%x23"; "%x24"; "%x25"; "%x26";
+     "%x27"; "%x28"; "%x29"; "%x30"; "%x31" |]
+let fregs = Array.init 32 (fun i -> Printf.sprintf "%%f%d" i)
 let allregs = Array.to_list regs
 let allfregs = Array.to_list fregs
 let reg_cl = regs.(Array.length regs - 1) (* closure address (caml2html: sparcasm_regcl) *)
 let reg_sw = regs.(Array.length regs - 2) (* temporary for swap *)
 let reg_fsw = fregs.(Array.length fregs - 1) (* temporary for swap *)
-let reg_sp = "x2" (* stack pointer *)
-let reg_link = "x5" (* link register *)
-let reg_tmp = "x6" (* [XX] ad hoc *)
-let is_reg x = mem x allregs || mem x allfregs
+let reg_sp = "%x2" (* stack pointer *)
+let reg_hp = "%x3"
+let reg_link = "%x1" (* link register *)
+let reg_tmp = "%x6" (* [XX] ad hoc *)
+let is_reg x = (x.[0] = '%')
 
 (* super-tenuki *)
 let rec remove_and_uniq xs = function

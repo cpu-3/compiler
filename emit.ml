@@ -61,7 +61,7 @@ and g' oc = function (* 各命令のアセンブリ生成 (caml2html: emit_gprim
   | NonTail(_), Nop -> () (* ok *)
   | NonTail(x), Li(i) -> Printf.fprintf oc "\taddi\t%s, x0, %d\n" (reg x) i (* ok *)
   | NonTail(x), FLi(Id.L(l)) -> Printf.fprintf oc "\tflw\t%s, 0(%s)\n" (reg x) (reg l) (* ok *)
-  | NonTail(x), SetL(Id.L(y)) -> Printf.fprintf oc "\tfadd\t%s, x0, %s\n" (reg x) (reg l) (* ok *)
+  | NonTail(x), SetL(Id.L(y)) -> Printf.fprintf oc "\tfadd\t%s, x0, %s\n" (reg x) (reg y) (* ok *)
   | NonTail(x), Mr(y) when x = y -> () (* ok *)
   | NonTail(x), Mr(y) -> Printf.fprintf oc "\taddi\t%s, %s, 0\n" (reg x) (reg y) (* ok *)
   | NonTail(x), Neg(y) -> Printf.fprintf oc "\tsub\t%s, x0, %s\n" (reg x) (reg y) (* ok *)
