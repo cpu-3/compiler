@@ -44,20 +44,20 @@ let fletd(x, e1, e2) = Let((x, Type.Float), e1, e2)
 let seq(e1, e2) = Let((Id.gentmp Type.Unit, Type.Unit), e1, e2)
 
 let regs = (* Array.init 27 (fun i -> Printf.sprintf "_R_%d" i) *)
-  [| "%x4"; "%x5"; "%x7"; "%x8"; "%x9"; "%x10";
-     "%x11"; "%x12"; "%x13"; "%x14"; "%x15"; "%x16"; "%x17"; "%x18";
-     "%x19"; "%x20"; "%x21"; "%x22"; "%x23"; "%x24"; "%x25"; "%x26";
-     "%x27"; "%x28"; "%x29"; "%x30"; "%x31" |]
+  [| "%a0"; "%a1"; "%a2"; "%a3"; "%a4"; "%a5"; "%a6";
+     "%a7"; "%t0"; "%t1"; "%t2"; "%t3"; "%t4"; "%t5"; "%t6";
+     "%s0"; "%s1"; "%s2"; "%s3"; "%s4"; "%s5"; "%s6"; "%s7";
+     "%s8"; "%s9"; "%s10"; "%s11" |]
 let fregs = Array.init 32 (fun i -> Printf.sprintf "%%f%d" i)
 let allregs = Array.to_list regs
 let allfregs = Array.to_list fregs
 let reg_cl = regs.(Array.length regs - 1) (* closure address (caml2html: sparcasm_regcl) *)
 let reg_sw = regs.(Array.length regs - 2) (* temporary for swap *)
 let reg_fsw = fregs.(Array.length fregs - 1) (* temporary for swap *)
-let reg_sp = "%x2" (* stack pointer *)
-let reg_hp = "%x3"
-let reg_link = "%x1" (* link register *)
-let reg_tmp = "%x6" (* [XX] ad hoc *)
+let reg_link = "%ra" (* link register *)
+let reg_sp = "%sp" (* stack pointer *)
+let reg_hp = "%hp"
+let reg_tmp = "%tmp" (* [XX] ad hoc *)
 let is_reg x = (x.[0] = '%')
 
 (* super-tenuki *)
@@ -90,3 +90,83 @@ let rec concat e1 xt e2 =
   | Let(yt, exp, e1') -> Let(yt, exp, concat e1' xt e2)
 
 let align i = (if i mod 8 = 0 then i else i + 4)
+
+let print_id_or_imm = function
+  | V(s) -> print_string s
+  | C(i) -> print_int i
+
+let rec print_t = function
+  | Ans(exp) -> print_string "ans "; print_exp exp
+  | Let((s, _), exp, t) ->
+      (print_string ("let " ^ s ^ " = ");
+      print_exp exp;
+      print_string " in ";
+      print_t t;)
+and print_exp = function
+  | Nop -> print_string "nop"
+  | Li(n) -> (print_string "li "; print_int n)
+  | FLi(Id.L(l)) -> print_string ("fli " ^ l)
+  | SetL(Id.L(l)) -> print_string ("setl " ^ l)
+  | Mr(s) -> print_string ("mr " ^ s)
+  | Neg(s) -> print_string ("neg " ^ s)
+  | Add(s, i) -> (print_string ("add " ^ s ^ " "); print_id_or_imm i)
+  | Sub(s, i) -> (print_string ("sub " ^ s ^ " "); print_id_or_imm i)
+  | Slw(s, i) -> (print_string ("slw " ^ s ^ " "); print_id_or_imm i)
+  | Lwz(s, i) -> (print_string ("lwz " ^ s ^ " "); print_id_or_imm i)
+  | Stw(s1, s2, i) -> (print_string ("lwz " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
+  | FMr(s) -> print_string ("fmr " ^ s)
+  | FNeg(s) -> print_string ("fneg " ^ s)
+  | FAdd(s1, s2) -> print_string ("fadd " ^ s1 ^ " " ^ s2 ^ " ")
+  | FSub(s1, s2) -> print_string ("fsub " ^ s1 ^ " " ^ s2 ^ " ")
+  | FMul(s1, s2) -> print_string ("fmul " ^ s1 ^ " " ^ s2 ^ " ")
+  | FDiv(s1, s2) -> print_string ("fdiv " ^ s1 ^ " " ^ s2 ^ " ")
+  | Lfd(s, i) -> (print_string ("lfd " ^ s ^ " "); print_id_or_imm i)
+  | Stfd(s1, s2, i) -> (print_string ("stfd " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
+  | Comment(s) -> (print_string ("comment " ^ s))
+  (* virtual instructions *)
+  | IfEq(s, i, t1, t2) -> (print_string ("ifeq " ^ s ^ " ");
+                           print_id_or_imm i;
+                           print_t t1;
+                           print_t t2)
+  | IfLE(s, i, t1, t2) -> (print_string ("ifle " ^ s ^ " ");
+                           print_id_or_imm i;
+                           print_t t1;
+                           print_t t2)
+  | IfGE(s, i, t1, t2) -> (print_string ("ifge " ^ s ^ " ");
+                           print_id_or_imm i;
+                           print_t t1;
+                           print_t t2)
+  | IfFEq(s1, s2, t1, t2) -> (print_string ("ifeq " ^ s1 ^ " " ^ s2 ^ " ");
+                           print_t t1;
+                           print_t t2)
+  | IfFLE(s1, s2, t1, t2) -> (print_string ("ifeq " ^ s1 ^ " " ^ s2 ^ " ");
+                           print_t t1;
+                           print_t t2)
+  (* closure address, integer arguments, and float arguments *)
+  | CallCls(s, ints, floats) ->
+      (print_string ("callcls " ^ s ^ " ints: ");
+       List.iter print_string ints;
+       print_string " floats: ";
+       List.iter print_string floats)
+  | CallDir(Id.L(l), ints, floats) ->
+      (print_string ("calldir " ^ l ^ " ints: ");
+       List.iter print_string ints;
+       print_string " floats: ";
+       List.iter print_string floats)
+  | Save(s1, s2) -> print_string ("save " ^ s1 ^ " " ^ s2)
+  | Restore(s) -> print_string ("restore " ^ s)
+
+let print_prog (Prog(fls, topfs, e)) =
+  (print_string "\n(name, float) =\n";
+  List.iter (fun (l, f) ->
+    let Id.L(l) = l in
+    print_string ("(" ^ l ^ " ");
+    print_float f;
+    print_string ") ";) fls;
+  print_string "\nfundef list =\n";
+  List.iter (fun fd ->
+    let Id.L(n) = fd.name in
+    print_string (n ^ " ")) topfs;
+  print_string "\n";
+  print_t e)
+

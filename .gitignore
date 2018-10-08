@@ -1,6 +1,3 @@
-*.dSYM*/
-*.nkftmp*
-
 # make
 ._bcdi/
 ._d/

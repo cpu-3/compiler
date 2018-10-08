@@ -12,13 +12,15 @@ let rec iter n e = (* 最適化処理をくりかえす (caml2html: main_iter) *
 let lexbuf outchan nml = (* バッファをコンパイルしてチャンネルへ出力する (caml2html: main_lexbuf) *)
   Id.counter := 0;
   Typing.extenv := M.empty;
-  Emit.f outchan
+  let prog =
     (RegAlloc.f
        (Simm.f
           (Virtual.f
              (Closure.f
                 (iter !limit
-                   (Alpha.f nml))))))
+                   (Alpha.f nml)))))) in
+  Asm.print_prog prog;
+  Emit.f outchan prog
 
 let lexbuf' outchan buf = lexbuf outchan (KNormal.f (Typing.f (Parser.exp Lexer.token buf)))
 
