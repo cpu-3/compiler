@@ -4,11 +4,11 @@ open Asm
 (* [XXX] Callがあったら、そこから先は無意味というか逆効果なので追わない。
          そのために「Callがあったかどうか」を返り値の第1要素に含める。 *)
 let rec target' src (dest, t) = function
-  | Mr(x) when x = src && is_reg dest ->
+  | Mv(x) when x = src && is_reg dest ->
       assert (t <> Type.Unit);
       assert (t <> Type.Float);
       false, [dest]
-  | FMr(x) when x = src && is_reg dest ->
+  | FMv(x) when x = src && is_reg dest ->
       assert (t = Type.Float);
       false, [dest]
   | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2) | IfGE(_, _, e1, e2)
@@ -118,14 +118,14 @@ and g'_and_restore dest cont regenv exp = (* 使用される変数をスタッ�
      g dest cont regenv (Let((x, t), Restore(x), Ans(exp))))
 and g' dest cont regenv = function (* 各命令のレジスタ割り当て (caml2html: regalloc_gprime) *)
   | Nop | Li _ | SetL _ | Comment _ | Restore _ | FLi _ as exp -> (Ans(exp), regenv)
-  | Mr(x) -> (Ans(Mr(find x Type.Int regenv)), regenv)
+  | Mv(x) -> (Ans(Mv(find x Type.Int regenv)), regenv)
   | Neg(x) -> (Ans(Neg(find x Type.Int regenv)), regenv)
   | Add(x, y') -> (Ans(Add(find x Type.Int regenv, find' y' regenv)), regenv)
   | Sub(x, y') -> (Ans(Sub(find x Type.Int regenv, find' y' regenv)), regenv)
-  | Slw(x, y') -> (Ans(Slw(find x Type.Int regenv, find' y' regenv)), regenv)
-  | Lwz(x, y') -> (Ans(Lwz(find x Type.Int regenv, find' y' regenv)), regenv)
-  | Stw(x, y, z') -> (Ans(Stw(find x Type.Int regenv, find y Type.Int regenv, find' z' regenv)), regenv)
-  | FMr(x) -> (Ans(FMr(find x Type.Float regenv)), regenv)
+  | Sll(x, y') -> (Ans(Sll(find x Type.Int regenv, find' y' regenv)), regenv)
+  | Lw(x, y') -> (Ans(Lw(find x Type.Int regenv, find' y' regenv)), regenv)
+  | Sw(x, y, z') -> (Ans(Sw(find x Type.Int regenv, find y Type.Int regenv, find' z' regenv)), regenv)
+  | FMv(x) -> (Ans(FMv(find x Type.Float regenv)), regenv)
   | FNeg(x) -> (Ans(FNeg(find x Type.Float regenv)), regenv)
   | FAdd(x, y) -> (Ans(FAdd(find x Type.Float regenv, find y Type.Float regenv)), regenv)
   | FSub(x, y) -> (Ans(FSub(find x Type.Float regenv, find y Type.Float regenv)), regenv)
@@ -209,7 +209,7 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数�
     | Type.Unit -> Id.gentmp Type.Unit
     | Type.Float -> fregs.(0)
     | _ -> regs.(0) in
-  let (e', regenv') = g (a, t) (Ans(Mr(a))) regenv e in
+  let (e', regenv') = g (a, t) (Ans(Mv(a))) regenv e in
   { name = Id.L(x); args = arg_regs; fargs = farg_regs; body = e'; ret = t }
 
 let f (Prog(data, fundefs, e)) = (* プログラム全体のレジスタ割り当て (caml2html: regalloc_f) *)

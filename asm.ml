@@ -9,14 +9,14 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | Li of int
   | FLi of Id.l
   | SetL of Id.l
-  | Mr of Id.t
+  | Mv of Id.t
   | Neg of Id.t
   | Add of Id.t * id_or_imm
   | Sub of Id.t * id_or_imm
-  | Slw of Id.t * id_or_imm
-  | Lwz of Id.t * id_or_imm
-  | Stw of Id.t * Id.t * id_or_imm
-  | FMr of Id.t
+  | Sll of Id.t * id_or_imm
+  | Lw of Id.t * id_or_imm
+  | Sw of Id.t * Id.t * id_or_imm
+  | FMv of Id.t
   | FNeg of Id.t
   | FAdd of Id.t * Id.t
   | FSub of Id.t * Id.t
@@ -70,9 +70,9 @@ let rec remove_and_uniq xs = function
 let fv_id_or_imm = function V(x) -> [x] | _ -> []
 let rec fv_exp = function
   | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) | Restore(_) -> []
-  | Mr(x) | Neg(x) | FMr(x) | FNeg(x) | Save(x, _) -> [x]
-  | Add(x, y') | Sub(x, y') | Slw(x, y') | Lfd(x, y') | Lwz(x, y') -> x :: fv_id_or_imm y'
-  | Stw(x, y, z') | Stfd(x, y, z') -> x :: y :: fv_id_or_imm z'
+  | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | Save(x, _) -> [x]
+  | Add(x, y') | Sub(x, y') | Sll(x, y') | Lfd(x, y') | Lw(x, y') -> x :: fv_id_or_imm y'
+  | Sw(x, y, z') | Stfd(x, y, z') -> x :: y :: fv_id_or_imm z'
   | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) -> [x; y]
   | IfEq(x, y', e1, e2) | IfLE(x, y', e1, e2) | IfGE(x, y', e1, e2) ->  x :: fv_id_or_imm y' @ remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
   | IfFEq(x, y, e1, e2) | IfFLE(x, y, e1, e2) -> x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
@@ -107,14 +107,14 @@ and print_exp = function
   | Li(n) -> (print_string "li "; print_int n)
   | FLi(Id.L(l)) -> print_string ("fli " ^ l)
   | SetL(Id.L(l)) -> print_string ("setl " ^ l)
-  | Mr(s) -> print_string ("mr " ^ s)
+  | Mv(s) -> print_string ("mv " ^ s)
   | Neg(s) -> print_string ("neg " ^ s)
   | Add(s, i) -> (print_string ("add " ^ s ^ " "); print_id_or_imm i)
   | Sub(s, i) -> (print_string ("sub " ^ s ^ " "); print_id_or_imm i)
-  | Slw(s, i) -> (print_string ("slw " ^ s ^ " "); print_id_or_imm i)
-  | Lwz(s, i) -> (print_string ("lwz " ^ s ^ " "); print_id_or_imm i)
-  | Stw(s1, s2, i) -> (print_string ("lwz " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
-  | FMr(s) -> print_string ("fmr " ^ s)
+  | Sll(s, i) -> (print_string ("sll " ^ s ^ " "); print_id_or_imm i)
+  | Lw(s, i) -> (print_string ("lw " ^ s ^ " "); print_id_or_imm i)
+  | Sw(s1, s2, i) -> (print_string ("sw " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
+  | FMv(s) -> print_string ("fmv " ^ s)
   | FNeg(s) -> print_string ("fneg " ^ s)
   | FAdd(s1, s2) -> print_string ("fadd " ^ s1 ^ " " ^ s2 ^ " ")
   | FSub(s1, s2) -> print_string ("fsub " ^ s1 ^ " " ^ s2 ^ " ")

@@ -35,21 +35,21 @@ join-reg join-reg2 non-tail-if non-tail-if2 \
 inprod inprod-rec inprod-loop matmul matmul-flat \
 manyargs
 
-do_test: $(TESTS:%=test/%.cmp)
+do_test: $(TESTS:%=test/%.s)
 
 .PRECIOUS: test/%.s test/% test/%.res test/%.ans test/%.cmp
 TRASH = $(TESTS:%=test/%.s) $(TESTS:%=test/%) $(TESTS:%=test/%.res) $(TESTS:%=test/%.ans) $(TESTS:%=test/%.cmp)
 
 test/%.s: $(RESULT) test/%.ml
 	./$(RESULT) test/$*
-test/%: test/%.s libmincaml.S stub.c
-	$(CC) $(CFLAGS) -m32 $^ -lm -o $@
-test/%.res: test/%
-	$< > $@
-test/%.ans: test/%.ml
-	ocaml $< > $@
-test/%.cmp: test/%.res test/%.ans
-	diff $^ > $@
+# test/%: test/%.s libmincaml.S stub.c
+# 	$(CC) $(CFLAGS) -m32 $^ -lm -o $@
+# test/%.res: test/%
+# 	$< > $@
+# test/%.ans: test/%.ml
+# 	ocaml $< > $@
+# test/%.cmp: test/%.res test/%.ans
+# 	diff $^ > $@
 
 min-caml.html: main.mli main.ml id.ml m.ml s.ml \
 		syntax.ml type.ml parser.mly lexer.mll typing.mli typing.ml kNormal.mli kNormal.ml \

@@ -7,14 +7,14 @@ and exp =
   | Li of int
   | FLi of Id.l
   | SetL of Id.l
-  | Mr of Id.t
+  | Mv of Id.t
   | Neg of Id.t
   | Add of Id.t * id_or_imm
   | Sub of Id.t * id_or_imm
-  | Slw of Id.t * id_or_imm
-  | Lwz of Id.t * id_or_imm
-  | Stw of Id.t * Id.t * id_or_imm
-  | FMr of Id.t 
+  | Sll of Id.t * id_or_imm
+  | Lw of Id.t * id_or_imm
+  | Sw of Id.t * Id.t * id_or_imm
+  | FMv of Id.t
   | FNeg of Id.t
   | FAdd of Id.t * Id.t
   | FSub of Id.t * Id.t
