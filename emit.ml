@@ -248,17 +248,17 @@ and g'_args oc x_reg_cl ys zs =
 
 let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   Printf.fprintf oc "%s:\n" x;
-  let n = 4 * (3 + List.length xs + List.length ys) in
+  let n = 8 * (3 + List.length xs + List.length ys) in
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
-  Printf.fprintf oc "\tsw\tra, %d(sp)\n" (n-4);
-  Printf.fprintf oc "\tsw\ts0, %d(sp)\n" (n-8);
+  Printf.fprintf oc "\tsw\tra, %d(sp)\n" (n-8);
+  Printf.fprintf oc "\tsw\ts0, %d(sp)\n" (n-16);
   Printf.fprintf oc "\tadd\ts0, sp, %d\n" n;
   stackset := S.empty;
   stackmap := [];
   g oc (x ^ "_end") (Tail, e);
   Printf.fprintf oc "%s_end:\n" x;
-  Printf.fprintf oc "\tlw\tra, %d(sp)\n" (n-4);
-  Printf.fprintf oc "\tlw\ts0, %d(sp)\n" (n-8);
+  Printf.fprintf oc "\tlw\tra, %d(sp)\n" (n-8);
+  Printf.fprintf oc "\tlw\ts0, %d(sp)\n" (n-16);
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" n;
   Printf.fprintf oc "\tjr\tra\n"
 
