@@ -50,6 +50,7 @@ val reg_cl : Id.t
 val reg_sw : Id.t
 val reg_fsw : Id.t
 val reg_hp : Id.t
+val reg_fp : Id.t
 val reg_sp : Id.t
 val reg_link : Id.t
 val reg_tmp : Id.t
