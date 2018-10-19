@@ -169,32 +169,33 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
   (* 関数呼び出しの仮想命令の実装 (caml2html: emit_call) *)
   | Tail, CallCls(x, ys, zs) -> (* 末尾呼び出し (caml2html: emit_tailcall) *)
       g'_args oc [(x, reg_cl)] ys zs;
-      Printf.fprintf oc "\tlw\t%s, 0(%s)\n" (reg reg_sw) (reg reg_cl);
-      Printf.fprintf oc "\tmtctr\t%s\n\tbctr\n" (reg reg_sw);
+      Printf.fprintf oc "\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg reg_cl);
+      Printf.fprintf oc "\tcall\t%s\n" x;
   | Tail, CallDir(Id.L(x), ys, zs) -> (* 末尾呼び出し *)
       g'_args oc [] ys zs;
       Printf.fprintf oc "\tcall\t%s\n" x;
       Printf.fprintf oc "\tj\t%s\n" el;
   | NonTail(a), CallCls(x, ys, zs) ->
-      Printf.fprintf oc "\tmflr\t%s\n" (reg reg_tmp);
       g'_args oc [(x, reg_cl)] ys zs;
       let ss = stacksize () in
       Printf.fprintf oc "\tsw\t%s, %d(%s)\n" (reg reg_tmp) (ss - 4) (reg reg_sp);
-      Printf.fprintf oc "\tadd\t%s, %s, %d\n" (reg reg_sp) (reg reg_sp) ss;
       Printf.fprintf oc "\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg reg_cl);
-      Printf.fprintf oc "\tmtctr\t%s\n" (reg reg_tmp);
-      Printf.fprintf oc "\tbctrl\n";
-      Printf.fprintf oc "\tsub\t%s, %s, %d\n" (reg reg_sp) (reg reg_sp) ss;
+      Printf.fprintf oc "\tcall\t%s\n" x;
       Printf.fprintf oc "\tlw\t%s, %d(%s)\n" (reg reg_tmp) (ss - 4) (reg reg_sp);
       if List.mem a allregs && a <> regs.(0) then
-        Printf.fprintf oc "\tadd\t%s, %s, 0\n" (reg a) (reg regs.(0))
+        Printf.fprintf oc "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
       else if List.mem a allfregs && a <> fregs.(0) then
-        Printf.fprintf oc "\tfsgnj.s\t%s, %s, %s\n" (reg a) (reg fregs.(0)) (reg fregs.(0));
-      Printf.fprintf oc "\tmtlr\t%s\n" (reg reg_tmp)
+        Printf.fprintf oc "\tfmv\t%s, %s\n" (reg a) (reg fregs.(0));
   | (NonTail(a), CallDir(Id.L(x), ys, zs)) ->
-      List.iter (fun (i, y) -> Printf.fprintf oc "\tmv\ta%d, %s\n" i (reg y)) (zip (range 0 (List.length ys)) ys);
-      List.iter (fun (i, y) -> Printf.fprintf oc "\tmv\tf%d, %s\n" i (reg y)) (zip (range 0 (List.length zs)) zs);
+      g'_args oc [] ys zs;
+      let ss = stacksize () in
+      Printf.fprintf oc "\tsw\t%s, %d(%s)\n" (reg reg_tmp) (ss - 4) (reg reg_sp);
       Printf.fprintf oc "\tcall\t%s\n" x;
+      Printf.fprintf oc "\tlw\t%s, %d(%s)\n" (reg reg_tmp) (ss - 4) (reg reg_sp);
+      if List.mem a allregs && a <> regs.(0) then
+        Printf.fprintf oc "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
+      else if List.mem a allfregs && a <> fregs.(0) then
+        Printf.fprintf oc "\tfmv\t%s, %s\n" (reg a) (reg fregs.(0));
 and g'_tail_if oc el e1 e2 b bn rx ry =
   let b_else = Id.genid (b ^ "_else") in
   Printf.fprintf oc "\t%s\t%s, %s, %s\n" bn rx ry b_else;
@@ -225,7 +226,7 @@ and g'_args oc x_reg_cl ys zs =
       ys in
   List.iter
     (fun (y, r) -> Printf.fprintf oc "\tadd\t%s, %s, 0\n" (reg r) (reg y))
-    (shuffle reg_sw yrs);
+    (shuffle reg_tmp yrs);
   let (d, zfrs) =
     List.fold_left
       (fun (d, zfrs) z -> (d + 1, (z, fregs.(d)) :: zfrs))

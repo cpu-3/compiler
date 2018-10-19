@@ -193,7 +193,7 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数�
          (assert (not (is_reg y));
           M.add y r regenv)))
       (0, [], regenv)
-      ys in
+      ys in (* 引数をa0, a1, ...に割り当て *)
   let (d, farg_regs, regenv) =
     List.fold_left
       (fun (d, farg_regs, regenv) z ->

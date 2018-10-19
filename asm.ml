@@ -47,18 +47,17 @@ let regs = (* Array.init 27 (fun i -> Printf.sprintf "_R_%d" i) *)
   [| "%a0"; "%a1"; "%a2"; "%a3"; "%a4"; "%a5"; "%a6";
      "%a7"; "%t0"; "%t1"; "%t2"; "%t3"; "%t4"; "%t5"; "%t6";
      "%s1"; "%s2"; "%s3"; "%s4"; "%s5"; "%s6"; "%s7";
-     "%s8"; "%s9"; "%s10" |]
+     "%s8"; "%s9"; "%s10"; "%s11" |]
 let fregs = Array.init 32 (fun i -> Printf.sprintf "%%f%d" i)
 let allregs = Array.to_list regs
 let allfregs = Array.to_list fregs
 let reg_cl = regs.(Array.length regs - 1) (* closure address (caml2html: sparcasm_regcl) *)
-let reg_sw = regs.(Array.length regs - 2) (* temporary for swap *)
+let reg_tmp = regs.(Array.length regs - 2)
 let reg_fsw = fregs.(Array.length fregs - 1) (* temporary for swap *)
 let reg_link = "%ra" (* link register *)
 let reg_fp = "%s0"
 let reg_sp = "%sp" (* stack pointer *)
-let reg_hp = "%hp"
-let reg_tmp = "%s11" (* [XX] ad hoc *)
+let reg_hp = "%s9"
 let is_reg x = (x.[0] = '%')
 
 (* super-tenuki *)
@@ -167,7 +166,11 @@ let print_prog (Prog(fls, topfs, e)) =
   print_string "\nfundef list =\n";
   List.iter (fun fd ->
     let Id.L(n) = fd.name in
-    print_string (n ^ " ")) topfs;
+    print_string ("name: " ^ n ^ " , args: (");
+    List.iter(fun x -> print_string(x ^ ",")) fd.args;
+    print_string (") , body: ");
+    print_t(fd.body);
+    print_string ("\n");) topfs;
   print_string "\n";
   print_t e)
 
