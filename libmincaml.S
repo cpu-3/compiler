@@ -6,8 +6,8 @@ min_caml_print_char:
   sb a0, 0(s11)
   jr ra
 div10.1:
-	add	sp, sp, -48
-	sw	ra, 40(sp)
+	add	sp, sp, -8
+	sw	ra, 0(sp)
 	sub	a3, a2, a1
 	li	s10, 1
 	bgt	a3, s10, ble_else.32
@@ -28,12 +28,12 @@ ble_else.33:
 	call	div10.1
 	j	div10.1_end
 div10.1_end:
-	lw	ra, 40(sp)
-	add	sp, sp, 48
+	lw	ra, 0(sp)
+	add	sp, sp, 8
 	jr	ra
 min_caml_print_int:
-	add	sp, sp, -40
-	sw	ra, 32(sp)
+	add	sp, sp, -24
+	sw	ra, 16(sp)
 	li	s10, 0
 	bne	a0, s10, beq_else.34
 	li	s10, 0
@@ -47,13 +47,13 @@ beq_else.35:
 beq_else.34:
 	li	a1, 0
 	li	a2, 2147483647
-	sw	a0, 0(sp)
+	sw	a0, 8(sp)
 	call	div10.1
 	li	a1, 0
-	sw	a0, 4(sp)
+	sw	a0, 0(sp)
 	call	min_caml_print_int
-	lw	a0, 4(sp)
-	lw	a1, 0(sp)
+	lw	a0, 0(sp)
+	lw	a1, 8(sp)
   slli  t1, a0,  1
   slli  a0, a0,  3
   add   a0, a0, t1
@@ -62,6 +62,6 @@ beq_else.34:
 	call	min_caml_print_char
 	j	min_caml_print_int_end
 min_caml_print_int_end:
-	lw	ra, 32(sp)
-	add	sp, sp, 40
+	lw	ra, 16(sp)
+	add	sp, sp, 24
 	jr	ra
