@@ -2,7 +2,7 @@
 	.align 	2
 	.globl	min_caml_print_byte
 min_caml_print_char:
-  li s11 0x10000
+  li s11, 65540
   sb a0, 0(s11)
   jr ra
 div10.1:
