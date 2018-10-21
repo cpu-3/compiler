@@ -89,8 +89,8 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
   | NonTail(_), Sw(x, y, V(z)) -> Printf.fprintf oc "\tadd\t%s, %s, %s\n\tsw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
   | NonTail(_), Sw(x, y, C(z)) -> Printf.fprintf oc "\tsw\t%s, %d(%s)\n" (reg x) z (reg y)
   | NonTail(x), FMv(y) when x = y -> ()
-  | NonTail(x), FMv(y) -> Printf.fprintf oc "\tfsgnj.s\t%s, %s, %s\n" (reg x) (reg y) (reg y)
-  | NonTail(x), FNeg(y) -> Printf.fprintf oc "\tfsgnjn.s\t%s, %s, %s\n" (reg x) (reg y) (reg y)
+  | NonTail(x), FMv(y) -> Printf.fprintf oc "\tfmv\t%s, %s\n" (reg x) (reg y)
+  | NonTail(x), FNeg(y) -> Printf.fprintf oc "\tfmv\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FAdd(y, z) -> Printf.fprintf oc "\tfadd\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FSub(y, z) -> Printf.fprintf oc "\tfsub\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FMul(y, z) -> Printf.fprintf oc "\tfmul\t%s, %s, %s\n" (reg x) (reg y) (reg z)
@@ -180,7 +180,6 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
       Printf.fprintf oc "\tj\t%s\n" el;
   | NonTail(a), CallCls(x, ys, zs) ->
       g'_args oc [(x, reg_cl)] ys zs;
-      let ss = stacksize () in
       Printf.fprintf oc "\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg reg_cl);
       Printf.fprintf oc "\tjrl\t%s\n" (reg reg_tmp);
       if List.mem a allregs && a <> regs.(0) then
@@ -189,7 +188,6 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
         Printf.fprintf oc "\tfmv\t%s, %s\n" (reg a) (reg fregs.(0));
   | (NonTail(a), CallDir(Id.L(x), ys, zs)) ->
       g'_args oc [] ys zs;
-      let ss = stacksize () in
       Printf.fprintf oc "\tcall\t%s\n" x;
       if List.mem a allregs && a <> regs.(0) then
         Printf.fprintf oc "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
@@ -232,7 +230,7 @@ and g'_args oc x_reg_cl ys zs =
       (0, [])
       zs in
   List.iter
-    (fun (z, fr) -> Printf.fprintf oc "\tfsgnj.s\t%s, %s, %s\n" (reg fr) (reg z) (reg z))
+    (fun (z, fr) -> Printf.fprintf oc "\tfmv\t%s, %s\n" (reg fr) (reg z))
     (shuffle reg_fsw zfrs)
 
 let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
