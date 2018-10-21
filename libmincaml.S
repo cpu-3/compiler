@@ -31,7 +31,7 @@ div10.1_end:
 	lw	ra, 40(sp)
 	add	sp, sp, 48
 	jr	ra
-print_int.5:
+min_caml_print_int:
 	add	sp, sp, -40
 	sw	ra, 32(sp)
 	li	s10, 0
@@ -39,11 +39,11 @@ print_int.5:
 	li	s10, 0
 	bne	a1, s10, beq_else.35
 	nop
-	j	print_int.5_end
+	j	min_caml_print_int_end
 beq_else.35:
 	li	a0, 48
 	call	min_caml_print_char
-	j	print_int.5_end
+	j	min_caml_print_int_end
 beq_else.34:
 	li	a1, 0
 	li	a2, 2147483647
@@ -51,14 +51,17 @@ beq_else.34:
 	call	div10.1
 	li	a1, 0
 	sw	a0, 4(sp)
-	call	print_int.5
+	call	min_caml_print_int
 	lw	a0, 4(sp)
 	lw	a1, 0(sp)
+  slli  t1, a0,  1
+  slli  a0, a0,  3
+  add   a0, a0, t1
 	sub	a0, a1, a0
 	add	a0, a0, 48
 	call	min_caml_print_char
-	j	print_int.5_end
-print_int.5_end:
+	j	min_caml_print_int_end
+min_caml_print_int_end:
 	lw	ra, 32(sp)
 	add	sp, sp, 40
 	jr	ra
