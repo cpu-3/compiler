@@ -44,9 +44,9 @@ let fletd(x, e1, e2) = Let((x, Type.Float), e1, e2)
 let seq(e1, e2) = Let((Id.gentmp Type.Unit, Type.Unit), e1, e2)
 
 let regs = (* Array.init 27 (fun i -> Printf.sprintf "_R_%d" i) *)
-  [| "%a0"; "%a1"; "%a2"; "%a3"; "%a4"; "%a5"; "%a6";
-     "%a7"; "%t0"; "%t1"; "%t2"; "%t3"; "%t4"; "%t5"; "%t6";
-     "%s1"; "%s2"; "%s3"; "%s4"; "%s5"; "%s6"; "%s7";
+  [| "%a0"; "%a1"; "%a2"; "%a3"; "%a4"; "%a5"; "%a6"; "%a7";
+     "%t0"; "%t1"; "%t2"; "%t3"; "%t4"; "%t5"; "%t6";
+     "%s2"; "%s3"; "%s4"; "%s5"; "%s6"; "%s7";
      "%s8"; "%s9"; "%s10"; "%s11" |]
 let fregs = Array.init 32 (fun i -> Printf.sprintf "%%f%d" i)
 let allregs = Array.to_list regs
@@ -55,9 +55,8 @@ let reg_cl = regs.(Array.length regs - 1) (* closure address (caml2html: sparcas
 let reg_tmp = regs.(Array.length regs - 2)
 let reg_fsw = fregs.(Array.length fregs - 1) (* temporary for swap *)
 let reg_link = "%ra" (* link register *)
-let reg_fp = "%s0"
 let reg_sp = "%sp" (* stack pointer *)
-let reg_hp = "%s9"
+let reg_hp = "%s0" (* heap pointer *)
 let is_reg x = (x.[0] = '%')
 
 (* super-tenuki *)
