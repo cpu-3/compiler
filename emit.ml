@@ -172,44 +172,29 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
   | Tail, CallCls(x, ys, zs) -> (* 末尾呼び出し (caml2html: emit_tailcall) *)
       g'_args oc [(x, reg_cl)] ys zs;
       Printf.fprintf oc "\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg reg_cl);
-      Printf.fprintf oc "\tjr\t%s\n" (reg reg_tmp);
+      Printf.fprintf oc "\tjrl\t%s\n" (reg reg_tmp);
       Printf.fprintf oc "\tj\t%s\n" el;
   | Tail, CallDir(Id.L(x), ys, zs) -> (* 末尾呼び出し *)
       g'_args oc [] ys zs;
       Printf.fprintf oc "\tcall\t%s\n" x;
       Printf.fprintf oc "\tj\t%s\n" el;
   | NonTail(a), CallCls(x, ys, zs) ->
-      Printf.fprintf oc "\tmv\t%s, %s\n" (reg reg_tmp) (reg reg_link);
       g'_args oc [(x, reg_cl)] ys zs;
       let ss = stacksize () in
-      Printf.fprintf oc "\tsw\t%s, %d(%s)\n" (reg reg_tmp) (-ss + 4) (reg reg_sp);
       Printf.fprintf oc "\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg reg_cl);
-      Printf.fprintf oc "\tjr\t%s\n" (reg reg_tmp);
-      Printf.fprintf oc "\tlw\t%s, %d(%s)\n" (reg reg_tmp) (-ss + 4) (reg reg_sp);
+      Printf.fprintf oc "\tjrl\t%s\n" (reg reg_tmp);
       if List.mem a allregs && a <> regs.(0) then
         Printf.fprintf oc "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
       else if List.mem a allfregs && a <> fregs.(0) then
         Printf.fprintf oc "\tfmv\t%s, %s\n" (reg a) (reg fregs.(0));
-      Printf.fprintf oc "\tmv\t%s, %s\n" (reg reg_link) (reg reg_tmp)
   | (NonTail(a), CallDir(Id.L(x), ys, zs)) ->
-      Printf.fprintf oc "\tmv\t%s, %s\n" (reg reg_tmp) (reg reg_link);
       g'_args oc [] ys zs;
       let ss = stacksize () in
-      Printf.fprintf oc "\tsw\t%s, %d(%s)\n" (reg reg_tmp) (-ss + 4) (reg reg_sp);
       Printf.fprintf oc "\tcall\t%s\n" x;
-      Printf.fprintf oc "\tlw\t%s, %d(%s)\n" (reg reg_tmp) (-ss + 4) (reg reg_sp);
       if List.mem a allregs && a <> regs.(0) then
         Printf.fprintf oc "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
       else if List.mem a allfregs && a <> fregs.(0) then
         Printf.fprintf oc "\tfmv\t%s, %s\n" (reg a) (reg fregs.(0));
-      Printf.fprintf oc "\tmv\t%s, %s\n" (reg reg_link) (reg reg_tmp)
-(*
-      Printf.fprintf oc "\tstw\t%s, %d(%s)\n" (reg reg_tmp) (ss - 4) (reg reg_sp);
-      Printf.fprintf oc "\taddi\t%s, %s, %d\n" (reg reg_sp) (reg reg_sp) ss;
-      Printf.fprintf oc "\tbl\t%s\n" x;
-      Printf.fprintf oc "\tsubi\t%s, %s, %d\n" (reg reg_sp) (reg reg_sp) ss;
-      Printf.fprintf oc "\tlwz\t%s, %d(%s)\n" (reg reg_tmp) (ss - 4) (reg reg_sp);
-*)
 and g'_tail_if oc el e1 e2 b bn rx ry =
   let b_else = Id.genid (b ^ "_else") in
   Printf.fprintf oc "\t%s\t%s, %s, %s\n" bn rx ry b_else;
@@ -255,13 +240,11 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   let n = 8 * (3 + List.length xs + List.length ys) in
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
   Printf.fprintf oc "\tsw\tra, %d(sp)\n" (n-8);
-  Printf.fprintf oc "\tsw\ts0, %d(sp)\n" (n-16);
   stackset := S.empty;
   stackmap := [];
   g oc (x ^ "_end") (Tail, e);
   Printf.fprintf oc "%s_end:\n" x;
   Printf.fprintf oc "\tlw\tra, %d(sp)\n" (n-8);
-  Printf.fprintf oc "\tlw\ts0, %d(sp)\n" (n-16);
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" n;
   Printf.fprintf oc "\tjr\tra\n"
 
@@ -283,32 +266,11 @@ let f oc (Prog(data, fundefs, e)) =
   Printf.fprintf oc "_min_caml_start: # main entry point\n";
   Printf.fprintf oc "\tadd\tsp, sp, -16\n";
   Printf.fprintf oc "\tsw\tra, 8(sp)\n";
-  Printf.fprintf oc "\tsw\ts0, 0(sp)\n";
-  Printf.fprintf oc "\tadd\ts0, sp, 16\n";
   Printf.fprintf oc "#\tmain program starts\n";
   stackset := S.empty;
   stackmap := [];
   g oc "hoge" (NonTail("_R_0"), e);
   Printf.fprintf oc "#\tmain program ends\n";
   Printf.fprintf oc "\tlw\tra, 8(sp)\n";
-  Printf.fprintf oc "\tlw\ts0, 0(sp)\n";
   Printf.fprintf oc "\tadd\tsp, sp, 16\n";
   Printf.fprintf oc "\tjr\t ra\n";
-(*
-  Printf.fprintf oc "_min_caml_start: # main entry point\n";
-  Printf.fprintf oc "\tmflr\tr0\n";
-  Printf.fprintf oc "\tstmw\tr30, -8(r1)\n";
-  Printf.fprintf oc "\tstw\tr0, 8(r1)\n";
-  Printf.fprintf oc "\tstwu\tr1, -96(r1)\n";
-  Printf.fprintf oc "#\tmain program starts\n";
-  stackset := S.empty;
-  stackmap := [];
-  g oc (NonTail("_R_0"), e);
-  Printf.fprintf oc "#\tmain program ends\n";
-  (* Printf.fprintf oc "\tmr\tr3, %s\n" regs.(0); *)
-  Printf.fprintf oc "\tlwz\tr1, 0(r1)\n";
-  Printf.fprintf oc "\tlwz\tr0, 8(r1)\n";
-  Printf.fprintf oc "\tmtlr\tr0\n";
-  Printf.fprintf oc "\tlmw\tr30, -8(r1)\n";
-  Printf.fprintf oc "\tblr\n"
-*)

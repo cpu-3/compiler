@@ -56,7 +56,7 @@ let reg_tmp = regs.(Array.length regs - 2)
 let reg_fsw = fregs.(Array.length fregs - 1) (* temporary for swap *)
 let reg_link = "%ra" (* link register *)
 let reg_sp = "%sp" (* stack pointer *)
-let reg_hp = "%s0" (* heap pointer *)
+let reg_hp = "%hp" (* heap pointer *)
 let is_reg x = (x.[0] = '%')
 
 (* super-tenuki *)
