@@ -46,7 +46,7 @@ beq_else.35:
 	j	print_int.5_end
 beq_else.34:
 	li	a1, 0
-	li	a2, INTMAX
+	li	a2, 2147483647
 	sw	a0, 0(sp)
 	call	div10.1
 	li	a1, 0
