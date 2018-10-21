@@ -40,7 +40,6 @@ min_caml_print_int:
 	j	min_caml_print_int_end
 beq_else.40:
 	li	a0, 48
-	call	min_caml_char_of_int
 	call	min_caml_print_char
 	j	min_caml_print_int_end
 beq_else.39:
@@ -58,7 +57,6 @@ beq_else.39:
   add a0, a0, t1
 	sub	a0, a1, a0
 	add	a0, a0, 48
-	call	min_caml_char_of_int
 	call	min_caml_print_char
 	j	min_caml_print_int_end
 min_caml_print_int_end:
