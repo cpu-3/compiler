@@ -19,7 +19,7 @@ let locate x =
     | y :: zs -> List.map succ (loc zs) in
   loc !stackmap
 let offset x = 4 * List.hd (locate x)
-let stacksize () = align ((List.length !stackmap + 1) * 4)
+let stacksize () = (List.length !stackmap + 1) * 4
 
 let reg r =
   if is_reg r
@@ -81,7 +81,7 @@ and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_g
   | NonTail(_), Sw(x, y, V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tsw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
   | NonTail(_), Sw(x, y, C(z)) -> Printf.bprintf buf "\tsw\t%s, %d(%s)\n" (reg x) z (reg y)
   | NonTail(x), FMv(y) when x = y -> ()
-  | NonTail(x), FMv(y) -> Printf.bprintf buf "\tfmv\t%s, %s\n" (reg x) (reg y)
+  | NonTail(x), FMv(y) -> Printf.bprintf buf "\tfmv.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FNeg(y) -> Printf.bprintf buf "\tfneg.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FAdd(y, z) -> Printf.bprintf buf "\tfadd.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FSub(y, z) -> Printf.bprintf buf "\tfsub.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
@@ -178,14 +178,14 @@ and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_g
       if List.mem a allregs && a <> regs.(0) then
         Printf.bprintf buf "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
       else if List.mem a allfregs && a <> fregs.(0) then
-        Printf.bprintf buf "\tfmv\t%s, %s\n" (reg a) (reg fregs.(0));
+        Printf.bprintf buf "\tfmv.s\t%s, %s\n" (reg a) (reg fregs.(0));
   | (NonTail(a), CallDir(Id.L(x), ys, zs)) ->
       g'_args buf [] ys zs;
       Printf.bprintf buf "\tcall\t%s\n" x;
       if List.mem a allregs && a <> regs.(0) then
         Printf.bprintf buf "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
       else if List.mem a allfregs && a <> fregs.(0) then
-        Printf.bprintf buf "\tfmv\t%s, %s\n" (reg a) (reg fregs.(0));
+        Printf.bprintf buf "\tfmv.s\t%s, %s\n" (reg a) (reg fregs.(0));
 and g'_tail_if oc el e1 e2 b bn rx ry =
   let b_else = Id.genid (b ^ "_else") in
   match bn with
@@ -226,7 +226,7 @@ and g'_args oc x_reg_cl ys zs =
       (0, [])
       zs in
   List.iter
-    (fun (z, fr) -> Printf.bprintf oc "\tfmv\t%s, %s\n" (reg fr) (reg z))
+    (fun (z, fr) -> Printf.bprintf oc "\tfmv.s\t%s, %s\n" (reg fr) (reg z))
     (shuffle reg_fsw zfrs)
 
 let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
@@ -235,7 +235,7 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   stackset := S.empty;
   stackmap := [];
   g buffer (x ^ "_end") (Tail, e);
-  let n = 4 * (List.length !stackmap + 1) in
+  let n = stacksize () in
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
   Printf.fprintf oc "\tsw\tra, %d(sp)\n" (n-4);
   Buffer.output_buffer oc buffer;
@@ -254,7 +254,7 @@ let f oc (Prog(data, fundefs, e)) =
        data);
   List.iter (fun fundef -> h oc fundef) fundefs;
   Printf.fprintf oc "_min_caml_start: # main entry point\n";
-  Printf.fprintf oc "\tadd\tsp, sp, -8\n";
+  Printf.fprintf oc "\tadd\tsp, sp, -16\n";
   Printf.fprintf oc "#\tmain program starts\n";
   stackset := S.empty;
   stackmap := [];

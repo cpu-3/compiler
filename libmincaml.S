@@ -114,7 +114,7 @@ create_float_array_loop:
 	bne t1, zero, create_float_array_cont
 	j create_float_array_end
 create_float_array_cont:
-	sw  f0, 0(hp)
+	fsw  f0, 0(hp)
 	sub t1, t1, 1
 	add hp, hp, 4
 	j create_float_array_loop
