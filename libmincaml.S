@@ -6,7 +6,7 @@ min_caml_print_char:
 
 # print_int
 div10.1:
-	add	sp, sp, -8
+	add	sp, sp, -4
 	sw	ra, 0(sp)
 	sub	a3, a2, a1
 	li	t1, 1
@@ -30,11 +30,11 @@ ble_else.45:
 	j	div10.1_end
 div10.1_end:
 	lw	ra, 0(sp)
-	add	sp, sp, 8
+	add	sp, sp, 4
 	jr	ra
 print_int2.5:
-	add	sp, sp, -24
-	sw	ra, 16(sp)
+	add	sp, sp, -12
+	sw	ra, 8(sp)
 	bne	a0, zero, beq_else.46
 	bne	a1, zero, beq_else.47
 	nop
@@ -49,9 +49,9 @@ beq_else.46:
 	sw	a0, 0(sp)
 	call	div10.1
 	li	a1, 0
-	sw	a0, 8(sp)
+	sw	a0, 4(sp)
 	call	print_int2.5
-	lw	a0, 8(sp)
+	lw	a0, 4(sp)
 	lw	a1, 0(sp)
   slli t1, a0, 1
   slli a0, a0, 3
@@ -61,12 +61,12 @@ beq_else.46:
 	call	min_caml_print_char
 	j	print_int2.5_end
 print_int2.5_end:
-	lw	ra, 16(sp)
-	add	sp, sp, 24
+	lw	ra, 8(sp)
+	add	sp, sp, 12
 	jr	ra
 min_caml_print_int:
-	add	sp, sp, -16
-	sw	ra, 8(sp)
+	add	sp, sp, -8
+	sw	ra, 4(sp)
 	blt	a0, zero, bge_else.49
 	li	a1, 1
 	call	print_int2.5
@@ -82,21 +82,29 @@ bge_else.49:
 	call	print_int2.5
 	j	min_caml_print_int_end
 min_caml_print_int_end:
-	lw	ra, 8(sp)
-	add	sp, sp, 16
+	lw	ra, 4(sp)
+	add	sp, sp, 8
 	jr	ra
 
 #	create_array
 min_caml_create_array:
-	bne	a0, zero, create_array_cont
-	j	create_array_end
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+  mv  t1, a0
+  mv  a0, hp
+create_array_loop:
+	bne t1, zero, create_array_cont
+	j create_array_end
 create_array_cont:
 	sw  a1, 0(hp)
-	sub a0, a0, 1
+	sub t1, t1, 1
 	add hp, hp, 4
-	b create_array_loop
+	j create_array_loop
 create_array_end:
+  lw  ra, 0(sp)
+  add sp, sp, 4
 	jr	ra
+
+#	create_float_array
 # float_of_int
 # truncate
-#	create_float_array

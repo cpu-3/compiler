@@ -243,12 +243,12 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   stackset := S.empty;
   stackmap := [];
   g buffer (x ^ "_end") (Tail, e);
-  let n = 8 * (List.length !stackmap + 1) in
+  let n = 4 * (List.length !stackmap + 1) in
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
-  Printf.fprintf oc "\tsw\tra, %d(sp)\n" (n-8);
+  Printf.fprintf oc "\tsw\tra, %d(sp)\n" (n-4);
   Buffer.output_buffer oc buffer;
   Printf.fprintf oc "%s_end:\n" x;
-  Printf.fprintf oc "\tlw\tra, %d(sp)\n" (n-8);
+  Printf.fprintf oc "\tlw\tra, %d(sp)\n" (n-4);
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" n;
   Printf.fprintf oc "\tjr\tra\n"
 
@@ -268,8 +268,8 @@ let f oc (Prog(data, fundefs, e)) =
   Printf.fprintf oc "\t.align 2\n";
   List.iter (fun fundef -> h oc fundef) fundefs;
   Printf.fprintf oc "_min_caml_start: # main entry point\n";
-  Printf.fprintf oc "\tadd\tsp, sp, -16\n";
-  Printf.fprintf oc "\tsw\tra, 8(sp)\n";
+  Printf.fprintf oc "\tadd\tsp, sp, -8\n";
+  Printf.fprintf oc "\tsw\tra, 4(sp)\n";
   Printf.fprintf oc "#\tmain program starts\n";
   stackset := S.empty;
   stackmap := [];
@@ -277,5 +277,3 @@ let f oc (Prog(data, fundefs, e)) =
   g buffer "hoge" (NonTail("_R_0"), e);
   Buffer.output_buffer oc buffer;
   Printf.fprintf oc "#\tmain program ends\n";
-  Printf.fprintf oc "\tlw\tra, 8(sp)\n";
-  Printf.fprintf oc "\tadd\tsp, sp, 16\n";
