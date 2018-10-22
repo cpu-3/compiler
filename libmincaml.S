@@ -128,10 +128,10 @@ min_caml_truncate:
 
 # abs_float
 min_caml_abs_float:
-  fcvt.s.w t1, zero
-  fle.s f0, t1, neg_float
+  li t1, neg_float
+  fle.s f0, zero, t1
   ret
-net_float:
+neg_float:
   fneg.s f0, f0
   ret
 
