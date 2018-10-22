@@ -218,7 +218,7 @@ and g'_args oc x_reg_cl ys zs =
       (0, x_reg_cl)
       ys in
   List.iter
-    (fun (y, r) -> Printf.bprintf oc "\tadd\t%s, %s, 0\n" (reg r) (reg y))
+    (fun (y, r) -> Printf.bprintf oc "\tmv\t%s, %s\n" (reg r) (reg y))
     (shuffle reg_tmp yrs);
   let (d, zfrs) =
     List.fold_left
@@ -247,16 +247,11 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
 let f oc (Prog(data, fundefs, e)) =
   Format.eprintf "generating assembly...@.";
   if data <> [] then
-    (Printf.fprintf oc "\t.data\n\t.literal8\n";
-     List.iter
+    (List.iter
        (fun (Id.L(x), d) ->
-         Printf.fprintf oc "\t.align 3\n";
          Printf.fprintf oc "%s:\t # %f\n" x d;
          Printf.fprintf oc "\t.word\t%d\n" (Int32.to_int (Int32.bits_of_float d)))
        data);
-  Printf.fprintf oc "\t.text\n";
-  Printf.fprintf oc "\t.globl _min_caml_start\n";
-  Printf.fprintf oc "\t.align 2\n";
   List.iter (fun fundef -> h oc fundef) fundefs;
   Printf.fprintf oc "_min_caml_start: # main entry point\n";
   Printf.fprintf oc "\tadd\tsp, sp, -8\n";

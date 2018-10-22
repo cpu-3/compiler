@@ -121,12 +121,12 @@ create_float_array_cont:
 create_float_array_end:
 	ret
 
-# truncate (int_of_float)
+# truncate (float -> int)
 min_caml_truncate:
   fcvt.w.s a0, f0
   ret
 
-# float_of_int
+# int -> float
 min_caml_float_of_int:
   fcvt.s.w f0, a0
   ret
