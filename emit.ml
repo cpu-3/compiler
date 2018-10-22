@@ -71,7 +71,7 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
   | NonTail(x), Li(i) -> Printf.bprintf oc "\tli\t%s, %d\n" (reg x) i
   | NonTail(x), FLi(Id.L(l)) ->
       let s = load_label (reg reg_tmp) l in
-      Printf.bprintf oc "%s\tlfd\t%s, 0(%s)\n" s (reg x) (reg reg_tmp)
+      Printf.bprintf oc "%s\tflw\t%s, 0(%s)\n" s (reg x) (reg reg_tmp)
   | NonTail(x), SetL(Id.L(y)) ->
       let s = load_label x y in
       Printf.bprintf oc "%s" s
@@ -91,9 +91,9 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
   | NonTail(x), FMv(y) when x = y -> ()
   | NonTail(x), FMv(y) -> Printf.bprintf oc "\tfmv\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FNeg(y) -> Printf.bprintf oc "\tfmv\t%s, %s\n" (reg x) (reg y)
-  | NonTail(x), FAdd(y, z) -> Printf.bprintf oc "\tfadd\t%s, %s, %s\n" (reg x) (reg y) (reg z)
-  | NonTail(x), FSub(y, z) -> Printf.bprintf oc "\tfsub\t%s, %s, %s\n" (reg x) (reg y) (reg z)
-  | NonTail(x), FMul(y, z) -> Printf.bprintf oc "\tfmul\t%s, %s, %s\n" (reg x) (reg y) (reg z)
+  | NonTail(x), FAdd(y, z) -> Printf.bprintf oc "\tfadd.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
+  | NonTail(x), FSub(y, z) -> Printf.bprintf oc "\tfsub.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
+  | NonTail(x), FMul(y, z) -> Printf.bprintf oc "\tfmul.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FDiv(y, z) -> Printf.bprintf oc "\tfdiv\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), Lfd(y, V(z)) -> Printf.bprintf oc "\tadd\t%s, %s, %s\n\tflw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
   | NonTail(x), Lfd(y, C(z)) -> Printf.bprintf oc "\tflw\t%s, %d(%s)\n" (reg x) z (reg y)
