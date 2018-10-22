@@ -2,7 +2,7 @@
 min_caml_print_char:
   li s11, 65540
   sb a0, 0(s11)
-  jr ra
+  ret
 
 # print_int
 div10.1:
@@ -31,7 +31,7 @@ ble_else.45:
 div10.1_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
-	jr	ra
+	ret
 print_int2.5:
 	add	sp, sp, -12
 	sw	ra, 8(sp)
@@ -63,7 +63,7 @@ beq_else.46:
 print_int2.5_end:
 	lw	ra, 8(sp)
 	add	sp, sp, 12
-	jr	ra
+	ret
 min_caml_print_int:
 	add	sp, sp, -8
 	sw	ra, 4(sp)
@@ -84,12 +84,10 @@ bge_else.49:
 min_caml_print_int_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
-	jr	ra
+	ret
 
 #	create_array
 min_caml_create_array:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
   mv  t1, a0
   mv  a0, hp
 create_array_loop:
@@ -101,10 +99,41 @@ create_array_cont:
 	add hp, hp, 4
 	j create_array_loop
 create_array_end:
-  lw  ra, 0(sp)
-  add sp, sp, 4
-	jr	ra
+	ret
 
 #	create_float_array
+min_caml_create_float_array:
+  mv  t1, a0
+  mv  a0, hp
+create_float_array_loop:
+	bne t1, zero, create_float_array_cont
+	j create_float_array_end
+create_float_array_cont:
+	sw  f0, 0(hp)
+	sub t1, t1, 1
+	add hp, hp, 4
+	j create_float_array_loop
+create_float_array_end:
+	ret
+
+# truncate (int_of_float)
+min_caml_truncate:
+  fcvt.w.s a0, f0
+  ret
+
 # float_of_int
-# truncate
+min_caml_truncate:
+  fcvt.s.w f0, a0
+  ret
+
+# abs_float
+min_caml_abs_float:
+  fcvt.s.w t1, zero
+  fle.s f0, t1, neg_float
+  ret
+net_float:
+  fneg.s f0, f0
+  ret
+
+# cos
+# sin

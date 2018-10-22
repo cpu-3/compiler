@@ -90,7 +90,7 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
   | NonTail(_), Sw(x, y, C(z)) -> Printf.bprintf oc "\tsw\t%s, %d(%s)\n" (reg x) z (reg y)
   | NonTail(x), FMv(y) when x = y -> ()
   | NonTail(x), FMv(y) -> Printf.bprintf oc "\tfmv\t%s, %s\n" (reg x) (reg y)
-  | NonTail(x), FNeg(y) -> Printf.bprintf oc "\tfmv\t%s, %s\n" (reg x) (reg y)
+  | NonTail(x), FNeg(y) -> Printf.bprintf oc "\tfneg.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FAdd(y, z) -> Printf.bprintf oc "\tfadd.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FSub(y, z) -> Printf.bprintf oc "\tfsub.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FMul(y, z) -> Printf.bprintf oc "\tfmul.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
@@ -250,7 +250,7 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   Printf.fprintf oc "%s_end:\n" x;
   Printf.fprintf oc "\tlw\tra, %d(sp)\n" (n-4);
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" n;
-  Printf.fprintf oc "\tjr\tra\n"
+  Printf.fprintf oc "\tret\n"
 
 let f oc (Prog(data, fundefs, e)) =
   Format.eprintf "generating assembly...@.";
