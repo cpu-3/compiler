@@ -35,10 +35,8 @@ div10.1_end:
 print_int2.5:
 	add	sp, sp, -24
 	sw	ra, 16(sp)
-	li	t1, 0
-	bne	a0, t1, beq_else.46
-	li	t1, 0
-	bne	a1, t1, beq_else.47
+	bne	a0, zero, beq_else.46
+	bne	a1, zero, beq_else.47
 	nop
 	j	print_int2.5_end
 beq_else.47:
@@ -69,8 +67,7 @@ print_int2.5_end:
 min_caml_print_int:
 	add	sp, sp, -16
 	sw	ra, 8(sp)
-	li	t1, 0
-	blt	a0, t1, bge_else.49
+	blt	a0, zero, bge_else.49
 	li	a1, 1
 	call	print_int2.5
 	j	min_caml_print_int_end
@@ -89,7 +86,17 @@ min_caml_print_int_end:
 	add	sp, sp, 16
 	jr	ra
 
+#	create_array
+min_caml_create_array:
+	bne	a0, zero, create_array_cont
+	j	create_array_end
+create_array_cont:
+	sw  a1, 0(hp)
+	sub a0, a0, 1
+	add hp, hp, 4
+	b create_array_loop
+create_array_end:
+	jr	ra
 # float_of_int
 # truncate
 #	create_float_array
-#	create_array
