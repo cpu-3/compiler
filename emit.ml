@@ -186,10 +186,11 @@ and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_g
         Printf.bprintf buf "\tfmv.s\t%s, %s\n" (reg a) (reg fregs.(0));
 and g'_tail_if oc el e1 e2 b bn rx ry =
   let b_else = Id.genid (b ^ "_else") in
-  match bn with
-  | "fle.s" | "feq.s" -> (Printf.bprintf oc "\tli\t%s, %s\n" (reg reg_tmp) b_else;
-                Printf.bprintf oc "\t%s\t%s, %s, %s\n" bn rx ry (reg reg_tmp);)
-  | _ -> Printf.bprintf oc "\t%s\t%s, %s, %s\n" bn rx ry b_else;
+  let s = if bn = "fle.s" || bn = "feq.s" then
+               (Printf.sprintf "\tli\t%s, %s\n" (reg reg_tmp) b_else;
+                Printf.sprintf "\t%s\t%s, %s, %s\n" bn rx ry (reg reg_tmp))
+          else Printf.sprintf "\t%s\t%s, %s, %s\n" bn rx ry b_else in
+  Printf.bprintf oc "%s" s;
   let stackset_back = !stackset in
   g oc el (Tail, e1);
   Printf.bprintf oc "%s:\n" b_else;
@@ -198,10 +199,11 @@ and g'_tail_if oc el e1 e2 b bn rx ry =
 and g'_non_tail_if oc el dest e1 e2 b bn rx ry =
   let b_else = Id.genid (b ^ "_else") in
   let b_cont = Id.genid (b ^ "_cont") in
-  match bn with
-  | "fle.s" | "feq.s" -> (Printf.bprintf oc "\tli\t%s, %s\n" (reg reg_tmp) b_else;
-                Printf.bprintf oc "\t%s\t%s, %s, %s\n" bn rx ry (reg reg_tmp);)
-  | _ -> Printf.bprintf oc "\t%s\t%s, %s, %s\n" bn rx ry b_else;
+  let s = if bn = "fle.s" || bn = "feq.s" then
+               (Printf.sprintf "\tli\t%s, %s\n" (reg reg_tmp) b_else;
+                Printf.sprintf "\t%s\t%s, %s, %s\n" bn rx ry (reg reg_tmp))
+          else Printf.sprintf "\t%s\t%s, %s, %s\n" bn rx ry b_else in
+  Printf.bprintf oc "%s" s;
   let stackset_back = !stackset in
   g oc el (dest, e1);
   let stackset1 = !stackset in
