@@ -95,6 +95,7 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
   | NonTail(x), FSub(y, z) -> Printf.bprintf oc "\tfsub.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FMul(y, z) -> Printf.bprintf oc "\tfmul.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FDiv(y, z) -> Printf.bprintf oc "\tfdiv.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
+  | NonTail(x), FSqrt(y) -> Printf.bprintf oc "\tfsqrt.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), Lfd(y, V(z)) -> Printf.bprintf oc "\tadd\t%s, %s, %s\n\tflw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
   | NonTail(x), Lfd(y, C(z)) -> Printf.bprintf oc "\tflw\t%s, %d(%s)\n" (reg x) z (reg y)
   | NonTail(_), Stfd(x, y, V(z)) -> Printf.bprintf oc "\tadd\t%s, %s, %s\n\tfsw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
@@ -121,7 +122,7 @@ and g' oc el = function (* 各命令のアセンブリ生成 (caml2html: emit_gp
   | Tail, (Li _ | SetL _ | Mv _ | Neg _ | Add _ | Sub _ | Sll _ | Lw _ as exp) ->
       g' oc el (NonTail(regs.(0)), exp);
       Printf.bprintf oc "\tj\t%s\n" el
-  | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | Lfd _ as exp) ->
+  | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FSqrt _ | Lfd _ as exp) ->
       g' oc el (NonTail(fregs.(0)), exp);
       Printf.bprintf oc "\tj\t%s\n" el
   | Tail, (Restore(x) as exp) ->

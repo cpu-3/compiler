@@ -22,6 +22,7 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | FSqrt of Id.t
   | Lfd of Id.t * id_or_imm
   | Stfd of Id.t * Id.t * id_or_imm
   | Comment of string
@@ -69,7 +70,7 @@ let rec remove_and_uniq xs = function
 let fv_id_or_imm = function V(x) -> [x] | _ -> []
 let rec fv_exp = function
   | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) | Restore(_) -> []
-  | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | Save(x, _) -> [x]
+  | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | FSqrt(x) | Save(x, _) -> [x]
   | Add(x, y') | Sub(x, y') | Sll(x, y') | Lfd(x, y') | Lw(x, y') -> x :: fv_id_or_imm y'
   | Sw(x, y, z') | Stfd(x, y, z') -> x :: y :: fv_id_or_imm z'
   | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) -> [x; y]
@@ -119,6 +120,7 @@ and print_exp = function
   | FSub(s1, s2) -> print_string ("fsub " ^ s1 ^ " " ^ s2 ^ " ")
   | FMul(s1, s2) -> print_string ("fmul " ^ s1 ^ " " ^ s2 ^ " ")
   | FDiv(s1, s2) -> print_string ("fdiv " ^ s1 ^ " " ^ s2 ^ " ")
+  | FSqrt(s1) -> print_string ("fsqrt " ^ s1 ^ " ")
   | Lfd(s, i) -> (print_string ("lfd " ^ s ^ " "); print_id_or_imm i)
   | Stfd(s1, s2, i) -> (print_string ("stfd " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
   | Comment(s) -> (print_string ("comment " ^ s))
