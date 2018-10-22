@@ -4,6 +4,11 @@ min_caml_print_char:
   sb a0, 0(s11)
   ret
 
+# print_newline
+min_caml_print_newline:
+  li a0, 10
+  j min_caml_print_char
+
 # print_int
 div10.1:
 	add	sp, sp, -4
@@ -122,7 +127,7 @@ min_caml_truncate:
   ret
 
 # float_of_int
-min_caml_truncate:
+min_caml_float_of_int:
   fcvt.s.w f0, a0
   ret
 
