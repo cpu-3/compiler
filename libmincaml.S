@@ -137,11 +137,8 @@ min_caml_float_of_int:
 
 # abs_float
 min_caml_abs_float:
-	add sp, sp, -4
-	sw	f1, 0(sp)
-  li t1, neg_float
-  fcvt.s.w f1, zero
-  fle.s f0, f1, t1
+  fle.s t1, f0, zero
+  beq t1, zero, neg_float
   j min_caml_abs_float_end
 neg_float:
   fneg.s f0, f0
@@ -152,237 +149,241 @@ min_caml_abs_float_end:
   ret
 
 # cos, sin
-l.154:	 # 3.141593
-	.word	1078530011
-l.141:	 # 0.785398
-	.word	1061752795
-l.140:	 # 1.570796
-	.word	1070141403
-l.133:	 # 0.001370
-	.word	984842502
-l.132:	 # 0.041664
-	.word	1026205577
-l.131:	 # 0.500000
-	.word	1056964608
-l.130:	 # 0.000196
-	.word	961373366
-l.129:	 # 0.008333
-	.word	1007191654
-l.128:	 # 0.166667
-	.word	1042983596
-l.127:	 # 1.000000
-	.word	1065353216
-l.126:	 # 6.283185
-	.word	1086918619
-l.125:	 # 2.000000
-	.word	1073741824
-l.124:	 # -1.000000
-	.word	-1082130432
-l.123:	 # 0.000000
+l.141:	 # 0.000000
 	.word	0
+l.140:	 # 3.141593
+	.word	1078530011
+l.139:	 # 0.785398
+	.word	1061752795
+l.132:	 # 1.570796
+	.word	1070141403
+l.125:	 # 0.001370
+	.word	984842502
+l.124:	 # 0.041664
+	.word	1026205577
+l.123:	 # 0.500000
+	.word	1056964608
+l.122:	 # 0.000196
+	.word	961373366
+l.121:	 # 0.008333
+	.word	1007191654
+l.120:	 # 0.166667
+	.word	1042983596
+l.119:	 # 1.000000
+	.word	1065353216
+l.118:	 # -1.000000
+	.word	-1082130432
+l.117:	 # 6.283185
+	.word	1086918619
+l.116:	 # 2.000000
+	.word	1073741824
 flag.2:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
-	li	t1, l.123
+	li	t1, l.116
 	flw	f1, 0(t1)
-	fle.s	f1, f0, t1
-	li	a0, 1
-	j	flag.2_end
-fgt_else.203:
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.168
 	li	a0, 0
+	j	flag.2_end
+fle.s_else.168:
+	li	a0, 1
 	j	flag.2_end
 flag.2_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
-inner.105:
+inner.100:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
-	fle.s	f1, f0, t1
-	fmv.s	f0, f1
-	j	inner.105_end
-fgt_else.205:
-	li	t1, l.125
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.174
+	li	t1, l.116
 	flw	f2, 0(t1)
 	fmul.s	f1, f1, f2
-	call	inner.105
-	j	inner.105_end
-inner.105_end:
+	call	inner.100
+	j	inner.100_end
+fle.s_else.174:
+	fmv.s	f0, f1
+	j	inner.100_end
+inner.100_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
-inner.109:
+inner.104:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
-	li	t1, l.126
+	li	t1, l.117
 	flw	f2, 0(t1)
-	fle.s	f2, f0, t1
-	j	inner.109_end
-fgt_else.206:
-	fle.s	f1, f0, t1
-	j	fgt_cont.208
-fgt_else.207:
+	fle.s	t1, f2, f0
+	beq	t1, zero, fle.s_else.175
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.176
 	fsub.s	f0, f0, f1
-fgt_cont.208:
-	li	t1, l.125
+	j	fle.s_cont.177
+fle.s_else.176:
+fle.s_cont.177:
+	li	t1, l.116
 	flw	f2, 0(t1)
 	fdiv.s	f1, f1, f2
-	call	inner.109
-	j	inner.109_end
-inner.109_end:
+	call	inner.104
+	j	inner.104_end
+fle.s_else.175:
+	j	inner.104_end
+inner.104_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
-reduction2pi.6:
+reduction2pi.4:
 	add	sp, sp, -8
 	sw	ra, 4(sp)
-	li	t1, l.126
+	li	t1, l.117
 	flw	f1, 0(t1)
 	fsw	f0, 0(sp)
-	call	inner.105
+	call	inner.100
 	fmv.s	f1, f0
 	flw	f0, 0(sp)
-	call	inner.109
-	j	reduction2pi.6_end
-reduction2pi.6_end:
+	call	inner.104
+	j	reduction2pi.4_end
+reduction2pi.4_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
 	ret
-reverse.8:
+reverse.6:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
 	li	t1, 0
-	bne	a0, t1, beq_else.209
+	bne	a0, t1, beq_else.178
 	li	a0, 1
-	j	reverse.8_end
-beq_else.209:
+	j	reverse.6_end
+beq_else.178:
 	li	a0, 0
-	j	reverse.8_end
-reverse.8_end:
+	j	reverse.6_end
+reverse.6_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
-add_sign.10:
+add_sign.8:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
 	li	t1, 0
-	bne	a0, t1, beq_else.210
-	j	add_sign.10_end
-beq_else.210:
-	li	t1, l.124
+	bne	a0, t1, beq_else.179
+	j	add_sign.8_end
+beq_else.179:
+	li	t1, l.118
 	flw	f1, 0(t1)
 	fmul.s	f0, f1, f0
-	j	add_sign.10_end
-add_sign.10_end:
+	j	add_sign.8_end
+add_sign.8_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
-pow.13:
+pow.11:
 	add	sp, sp, -8
 	sw	ra, 4(sp)
 	li	t1, 0
-	bne	a0, t1, beq_else.211
-	li	t1, l.127
+	bne	a0, t1, beq_else.180
+	li	t1, l.119
 	flw	f0, 0(t1)
-	j	pow.13_end
-beq_else.211:
+	j	pow.11_end
+beq_else.180:
 	sub	a0, a0, 1
 	fsw	f0, 0(sp)
-	call	pow.13
+	call	pow.11
 	flw	f1, 0(sp)
 	fmul.s	f0, f1, f0
-	j	pow.13_end
-pow.13_end:
+	j	pow.11_end
+pow.11_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
 	ret
-kernel_sin.16:
+kernel_sin.14:
 	add	sp, sp, -28
 	sw	ra, 24(sp)
-	li	t1, l.128
+	li	t1, l.120
 	flw	f1, 0(t1)
 	li	a0, 3
 	fsw	f0, 0(sp)
 	fsw	f1, 4(sp)
-	call	pow.13
+	call	pow.11
 	flw	f1, 4(sp)
 	fmul.s	f0, f1, f0
 	flw	f1, 0(sp)
 	fsub.s	f0, f1, f0
-	li	t1, l.129
+	li	t1, l.121
 	flw	f2, 0(t1)
 	li	a0, 5
 	fsw	f0, 8(sp)
 	fsw	f2, 12(sp)
 	fmv.s	f0, f1
-	call	pow.13
+	call	pow.11
 	flw	f1, 12(sp)
 	fmul.s	f0, f1, f0
 	flw	f1, 8(sp)
 	fadd.s	f0, f1, f0
-	li	t1, l.130
+	li	t1, l.122
 	flw	f1, 0(t1)
 	li	a0, 7
 	flw	f2, 0(sp)
 	fsw	f0, 16(sp)
 	fsw	f1, 20(sp)
 	fmv.s	f0, f2
-	call	pow.13
+	call	pow.11
 	flw	f1, 20(sp)
 	fmul.s	f0, f1, f0
 	flw	f1, 16(sp)
 	fsub.s	f0, f1, f0
-	j	kernel_sin.16_end
-kernel_sin.16_end:
+	j	kernel_sin.14_end
+kernel_sin.14_end:
 	lw	ra, 24(sp)
 	add	sp, sp, 28
 	ret
-kernel_cos.18:
+kernel_cos.16:
 	add	sp, sp, -32
 	sw	ra, 28(sp)
-	li	t1, l.127
+	li	t1, l.119
 	flw	f1, 0(t1)
-	li	t1, l.131
+	li	t1, l.123
 	flw	f2, 0(t1)
 	li	a0, 2
 	fsw	f0, 0(sp)
 	fsw	f1, 4(sp)
 	fsw	f2, 8(sp)
-	call	pow.13
+	call	pow.11
 	flw	f1, 8(sp)
 	fmul.s	f0, f1, f0
 	flw	f1, 4(sp)
 	fsub.s	f0, f1, f0
-	li	t1, l.132
+	li	t1, l.124
 	flw	f1, 0(t1)
 	li	a0, 4
 	flw	f2, 0(sp)
 	fsw	f0, 12(sp)
 	fsw	f1, 16(sp)
 	fmv.s	f0, f2
-	call	pow.13
+	call	pow.11
 	flw	f1, 16(sp)
 	fmul.s	f0, f1, f0
 	flw	f1, 12(sp)
 	fadd.s	f0, f1, f0
-	li	t1, l.133
+	li	t1, l.125
 	flw	f1, 0(t1)
 	li	a0, 6
 	flw	f2, 0(sp)
 	fsw	f0, 20(sp)
 	fsw	f1, 24(sp)
 	fmv.s	f0, f2
-	call	pow.13
+	call	pow.11
 	flw	f1, 24(sp)
 	fmul.s	f0, f1, f0
 	flw	f1, 20(sp)
 	fsub.s	f0, f1, f0
-	j	kernel_cos.18_end
-kernel_cos.18_end:
+	j	kernel_cos.16_end
+kernel_cos.16_end:
 	lw	ra, 28(sp)
 	add	sp, sp, 32
 	ret
-fsin.20:
+fsin.18:
 	add	sp, sp, -24
 	sw	ra, 20(sp)
 	flw	f1, 8(s11)
@@ -392,126 +393,132 @@ fsin.20:
 	flw	f0, 4(sp)
 	sw	a0, 8(sp)
 	call	min_caml_abs_float
-	call	reduction2pi.6
+	call	reduction2pi.4
 	flw	f1, 0(sp)
-	fle.s	f1, f0, t1
-	mv	a0, hp
-	add	hp, hp, 8
-	lw	a1, 8(sp)
-	sw	a1, 4(a0)
-	fsw	f0, 0(a0)
-	j	fgt_cont.213
-fgt_else.212:
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.176
 	fsub.s	f0, f0, f1
 	lw	a0, 8(sp)
 	fsw	f0, 12(sp)
-	call	reverse.8
+	call	reverse.6
 	mv	a1, hp
 	add	hp, hp, 8
 	sw	a0, 4(a1)
 	flw	f0, 12(sp)
 	fsw	f0, 0(a1)
 	mv	a0, a1
-fgt_cont.213:
+	j	fle.s_cont.177
+fle.s_else.176:
+	mv	a0, hp
+	add	hp, hp, 8
+	lw	a1, 8(sp)
+	sw	a1, 4(a0)
+	fsw	f0, 0(a0)
+fle.s_cont.177:
 	lw	a1, 4(a0)
 	flw	f0, 0(a0)
-	li	t1, l.140
+	li	t1, l.132
 	flw	f1, 0(t1)
-	fle.s	f1, f0, t1
-	j	fgt_cont.215
-fgt_else.214:
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.178
 	flw	f1, 0(sp)
 	fsub.s	f0, f1, f0
-fgt_cont.215:
-	li	t1, l.141
+	j	fle.s_cont.179
+fle.s_else.178:
+fle.s_cont.179:
+	li	t1, l.139
 	flw	f1, 0(t1)
 	sw	a1, 16(sp)
-	fle.s	f0, f1, t1
-	li	t1, l.140
+	fle.s	t1, f0, f1
+	beq	t1, zero, fle.s_else.180
+	call	kernel_sin.14
+	j	fle.s_cont.181
+fle.s_else.180:
+	li	t1, l.132
 	flw	f1, 0(t1)
 	fsub.s	f0, f1, f0
-	call	kernel_cos.18
-	j	fgt_cont.217
-fgt_else.216:
-	call	kernel_sin.16
-fgt_cont.217:
+	call	kernel_cos.16
+fle.s_cont.181:
 	lw	a0, 16(sp)
-	call	add_sign.10
-	j	fsin.20_end
-fsin.20_end:
+	call	add_sign.8
+	j	fsin.18_end
+fsin.18_end:
 	lw	ra, 20(sp)
 	add	sp, sp, 24
 	ret
-fcos.22:
+fcos.20:
 	add	sp, sp, -24
 	sw	ra, 20(sp)
 	flw	f1, 8(s11)
 	li	a0, 0
 	sw	a0, 0(sp)
 	fsw	f1, 4(sp)
-	call	min_caml_abs_floa;
-	call	reduction2pi.6
+	call	min_caml_abs_float
+	call	reduction2pi.4
 	flw	f1, 4(sp)
-	fle.s	f1, f0, t1
-	mv	a0, hp
-	add	hp, hp, 8
-	lw	a1, 0(sp)
-	sw	a1, 4(a0)
-	fsw	f0, 0(a0)
-	j	fgt_cont.219
-fgt_else.218:
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.181
 	fsub.s	f0, f0, f1
 	lw	a0, 0(sp)
 	fsw	f0, 8(sp)
-	call	reverse.8
+	call	reverse.6
 	mv	a1, hp
 	add	hp, hp, 8
 	sw	a0, 4(a1)
 	flw	f0, 8(sp)
 	fsw	f0, 0(a1)
 	mv	a0, a1
-fgt_cont.219:
-	lw	a1, 4(a0)
-	flw	f0, 0(a0)
-	li	t1, l.140
-	flw	f1, 0(t1)
-	fle.s	f1, f0, t1
+	j	fle.s_cont.182
+fle.s_else.181:
 	mv	a0, hp
 	add	hp, hp, 8
+	lw	a1, 0(sp)
 	sw	a1, 4(a0)
 	fsw	f0, 0(a0)
-	j	fgt_cont.221
-fgt_else.220:
+fle.s_cont.182:
+	lw	a1, 4(a0)
+	flw	f0, 0(a0)
+	li	t1, l.132
+	flw	f1, 0(t1)
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.183
 	flw	f1, 4(sp)
 	fsub.s	f0, f1, f0
 	fsw	f0, 12(sp)
 	mv	a0, a1
-	call	reverse.8
+	call	reverse.6
 	mv	a1, hp
 	add	hp, hp, 8
 	sw	a0, 4(a1)
 	flw	f0, 12(sp)
 	fsw	f0, 0(a1)
 	mv	a0, a1
-fgt_cont.221:
+	j	fle.s_cont.184
+fle.s_else.183:
+	mv	a0, hp
+	add	hp, hp, 8
+	sw	a1, 4(a0)
+	fsw	f0, 0(a0)
+fle.s_cont.184:
 	lw	a1, 4(a0)
 	flw	f0, 0(a0)
-	li	t1, l.141
+	li	t1, l.139
 	flw	f1, 0(t1)
 	sw	a1, 16(sp)
-	fle.s	f0, f1, t1
-	li	t1, l.140
+	fle.s	t1, f0, f1
+	beq	t1, zero, fle.s_else.185
+	call	kernel_cos.16
+	j	fle.s_cont.186
+fle.s_else.185:
+	li	t1, l.132
 	flw	f1, 0(t1)
 	fsub.s	f0, f1, f0
-	call	kernel_sin.16
-	j	fgt_cont.223
-fgt_else.222:
-	call	kernel_cos.18
-fgt_cont.223:
+	call	kernel_sin.14
+fle.s_cont.186:
 	lw	a0, 16(sp)
-	call	add_sign.10
-	j	fcos.22_end
-fcos.22_end:
+	call	add_sign.8
+	j	fcos.20_end
+fcos.20_end:
 	lw	ra, 20(sp)
 	add	sp, sp, 24
 	ret
@@ -520,11 +527,11 @@ min_caml_sin:
 	add sp, sp, -8
 	sw	ra, 0(sp)
 	fsw	f1, 4(sp)
-	li	t1, l.154
+	li	t1, l.140
 	flw	f1, 0(t1)
 	mv	s11, hp
 	add	hp, hp, 16
-	li	a0, fsin.20
+	li	a0, fsin.18
 	sw	a0, 0(s11)
 	fsw	f0, 8(s11)
 	jrl	a0
@@ -537,11 +544,11 @@ min_caml_cos:
 	add sp, sp, -8
 	sw	ra, 0(sp)
 	fsw	f1, 4(sp)
-	li	t1, l.154
+	li	t1, l.140
 	flw	f1, 0(t1)
 	mv	s11, hp
 	add	hp, hp, 16
-	li	a0, fcos.22
+	li	a0, fcos.20
 	sw	a0, 0(s11)
 	fsw	f0, 8(s11)
 	jrl	a0
