@@ -139,7 +139,7 @@ min_caml_float_of_int:
 min_caml_abs_float:
   add sp, sp, -4
   fsw f1, 0(sp)
-  fmv.s f1, zero
+  fcvt.s.w  f1, zero
   fle.s t1, f1, f0
   beq t1, zero, neg_float
   j min_caml_abs_float_end
