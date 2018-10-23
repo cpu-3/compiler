@@ -195,22 +195,6 @@ flag.2_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
-min_caml_abs_float.4:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
-	li	t1, l.123
-	flw	f1, 0(t1)
-	fle.s	f1, f0, t1
-	li	t1, l.124
-	flw	f1, 0(t1)
-	fmul.s	f0, f1, f0
-	j	min_caml_abs_float.4_end
-fgt_else.204:
-	j	min_caml_abs_float.4_end
-min_caml_abs_float.4_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
 inner.105:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
@@ -407,7 +391,7 @@ fsin.20:
 	call	flag.2
 	flw	f0, 4(sp)
 	sw	a0, 8(sp)
-	call	min_caml_abs_float.4
+	call	min_caml_abs_float
 	call	reduction2pi.6
 	flw	f1, 0(sp)
 	fle.s	f1, f0, t1
@@ -465,7 +449,7 @@ fcos.22:
 	li	a0, 0
 	sw	a0, 0(sp)
 	fsw	f1, 4(sp)
-	call	min_caml_abs_float.4
+	call	min_caml_abs_floa;
 	call	reduction2pi.6
 	flw	f1, 4(sp)
 	fle.s	f1, f0, t1
