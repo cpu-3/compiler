@@ -263,12 +263,12 @@ let f oc (Prog(data, fundefs, e)) =
          Printf.fprintf oc "\t.word\t%d\n" (Int32.to_int (Int32.bits_of_float d)))
        data);
   List.iter (fun fundef -> h oc fundef) fundefs;
-  Printf.fprintf oc "_min_caml_start: # main entry point\n";
-  Printf.fprintf oc "\tadd\tsp, sp, -16\n";
-  Printf.fprintf oc "#\tmain program starts\n";
   stackset := S.empty;
   stackmap := [];
   let buffer = Buffer.create 128 in
   g buffer "hoge" (NonTail("_R_0"), e);
+  let n = stacksize () in
+  Printf.fprintf oc "_min_caml_start: # main entry point\n";
+  if n = 4 then ()
+  else Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n+4);
   Buffer.output_buffer oc buffer;
-  Printf.fprintf oc "#\tmain program ends\n";
