@@ -156,13 +156,8 @@ let rec g env e = (* 型推論ルーチン (caml2html: typing_g) *)
 
 let f e =
   extenv := M.empty;
-  extenv := M.add "light_dirvec" (Type.Tuple([Type.Array(Type.Float); Type.Array(Type.Array(Type.Float))])) !extenv;
-(*
   (match deref_typ (g M.empty e) with
   | Type.Unit -> ()
   | _ -> Format.eprintf "warning: final result does not have type unit@.");
-*)
-  (try unify Type.Unit (g M.empty e)
-  with Unify _ -> failwith "top level does not have type unit");
   extenv := M.map deref_typ !extenv;
   deref_term e
