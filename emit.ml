@@ -72,6 +72,12 @@ and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_g
   | NonTail(x), Add(y, C(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %d\n" (reg x) (reg y) z
   | NonTail(x), Sub(y, V(z)) -> Printf.bprintf buf "\tsub\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), Sub(y, C(z)) -> Printf.bprintf buf "\tsub\t%s, %s, %d\n" (reg x) (reg y) z
+  | NonTail(x), Mul(y, C(z)) ->
+      let a = int_of_float (Pervasives.log (Pervasives.float_of_int z) /. Pervasives.log 2.0) in
+    Printf.bprintf buf "\tslli\t%s, %s, %d\n" (reg x) (reg y) a
+  | NonTail(x), Div(y, C(z)) ->
+      let a = int_of_float (Pervasives.log (Pervasives.float_of_int z) /. Pervasives.log 2.0) in
+    Printf.bprintf buf "\tsrli\t%s, %s, %d\n" (reg x) (reg y) a
   | NonTail(x), Sll(y, V(z)) -> Printf.bprintf buf "\tsll\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), Sll(y, C(z)) -> Printf.bprintf buf "\tslli\t%s, %s, %d\n" (reg x) (reg y) z
   | NonTail(x), Lw(y, V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
@@ -109,7 +115,7 @@ and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_g
   | Tail, (Nop | Sw _ | Stfd _ | Comment _ | Save _ as exp) ->
       g' buf el (NonTail(Id.gentmp Type.Unit), exp);
       Printf.bprintf buf "\tj\t%s\n" el
-  | Tail, (Li _ | SetL _ | Mv _ | Neg _ | Add _ | Sub _ | Sll _ | Lw _ as exp) ->
+  | Tail, (Li _ | SetL _ | Mv _ | Neg _ | Add _ | Sub _ | Mul _ | Div _ | Sll _ | Lw _ as exp) ->
       g' buf el (NonTail(regs.(0)), exp);
       Printf.bprintf buf "\tj\t%s\n" el
   | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FSqrt _ | Lfd _ as exp) ->

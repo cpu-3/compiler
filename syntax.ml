@@ -7,6 +7,8 @@ type t = (* MinCamlの構文を表現するデータ型 (caml2html: syntax_t) *)
   | Neg of t
   | Add of t * t
   | Sub of t * t
+  | Mul of t * t
+  | Div of t * t
   | FNeg of t
   | FAdd of t * t
   | FSub of t * t
@@ -45,6 +47,12 @@ let rec print_t stx =
                        print_t t2)
     | Sub (t1, t2) -> (print_t t1;
                    print_string " - ";
+                   print_t t2)
+    | Mul (t1, t2) -> (print_t t1;
+                       print_string " * ";
+                       print_t t2)
+    | Div (t1, t2) -> (print_t t1;
+                   print_string " / ";
                    print_t t2)
     | FAdd (t1, t2) -> (print_t t1;
                    print_string " +. ";

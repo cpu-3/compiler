@@ -13,6 +13,8 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | Neg of Id.t
   | Add of Id.t * id_or_imm
   | Sub of Id.t * id_or_imm
+  | Mul of Id.t * id_or_imm
+  | Div of Id.t * id_or_imm
   | Sll of Id.t * id_or_imm
   | Lw of Id.t * id_or_imm
   | Sw of Id.t * Id.t * id_or_imm
@@ -71,7 +73,7 @@ let fv_id_or_imm = function V(x) -> [x] | _ -> []
 let rec fv_exp = function
   | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) | Restore(_) -> []
   | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | FSqrt(x) | Save(x, _) -> [x]
-  | Add(x, y') | Sub(x, y') | Sll(x, y') | Lfd(x, y') | Lw(x, y') -> x :: fv_id_or_imm y'
+  | Add(x, y') | Sub(x, y') | Mul(x, y') | Div(x, y') | Sll(x, y') | Lfd(x, y') | Lw(x, y') -> x :: fv_id_or_imm y'
   | Sw(x, y, z') | Stfd(x, y, z') -> x :: y :: fv_id_or_imm z'
   | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) -> [x; y]
   | IfEq(x, y', e1, e2) | IfLE(x, y', e1, e2) | IfGE(x, y', e1, e2) ->  x :: fv_id_or_imm y' @ remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
@@ -111,6 +113,8 @@ and print_exp = function
   | Neg(s) -> print_string ("neg " ^ s)
   | Add(s, i) -> (print_string ("add " ^ s ^ " "); print_id_or_imm i)
   | Sub(s, i) -> (print_string ("sub " ^ s ^ " "); print_id_or_imm i)
+  | Mul(s, i) -> (print_string ("mul " ^ s ^ " "); print_id_or_imm i)
+  | Div(s, i) -> (print_string ("div " ^ s ^ " "); print_id_or_imm i)
   | Sll(s, i) -> (print_string ("sll " ^ s ^ " "); print_id_or_imm i)
   | Lw(s, i) -> (print_string ("lw " ^ s ^ " "); print_id_or_imm i)
   | Sw(s1, s2, i) -> (print_string ("sw " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)

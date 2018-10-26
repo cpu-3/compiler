@@ -27,6 +27,8 @@ let rec deref_term = function
   | Neg(e) -> Neg(deref_term e)
   | Add(e1, e2) -> Add(deref_term e1, deref_term e2)
   | Sub(e1, e2) -> Sub(deref_term e1, deref_term e2)
+  | Mul(e1, e2) -> Mul(deref_term e1, deref_term e2)
+  | Div(e1, e2) -> Div(deref_term e1, deref_term e2)
   | Eq(e1, e2) -> Eq(deref_term e1, deref_term e2)
   | LE(e1, e2) -> LE(deref_term e1, deref_term e2)
   | FNeg(e) -> FNeg(deref_term e)
@@ -93,7 +95,7 @@ let rec g env e = (* 型推論ルーチン (caml2html: typing_g) *)
     | Neg(e) ->
         unify Type.Int (g env e);
         Type.Int
-    | Add(e1, e2) | Sub(e1, e2) -> (* 足し算（と引き算）の型推論 (caml2html: typing_add) *)
+    | Add(e1, e2) | Sub(e1, e2) | Mul(e1, e2) | Div(e1, e2) -> (* 足し算（と引き算）の型推論 (caml2html: typing_add) *)
         unify Type.Int (g env e1);
         unify Type.Int (g env e2);
         Type.Int
@@ -128,8 +130,9 @@ let rec g env e = (* 型推論ルーチン (caml2html: typing_g) *)
         unify t (Type.Fun(List.map snd yts, g (M.add_list yts env) e1));
         g env e2
     | App(e, es) -> (* 関数適用の型推論 (caml2html: typing_app) *)
-        let fs = [Var("sqrt"); Var("sin"); Var("cos"); Var("abs_float"); Var("int_of_float")] in
-        let t = if List.mem e fs then Type.Float else Type.gentyp () in
+        let t = if List.mem e [Var("sqrt"); Var("sin"); Var("cos"); Var("abs_float"); Var("int_of_float")]
+                then Type.Float
+                else Type.gentyp () in
         unify (g env e) (Type.Fun(List.map (g env) es, t));
         t
     | Tuple(es) -> Type.Tuple(List.map (g env) es)
