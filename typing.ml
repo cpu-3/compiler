@@ -130,7 +130,7 @@ let rec g env e = (* 型推論ルーチン (caml2html: typing_g) *)
         unify t (Type.Fun(List.map snd yts, g (M.add_list yts env) e1));
         g env e2
     | App(e, es) -> (* 関数適用の型推論 (caml2html: typing_app) *)
-        let t = if List.mem e [Var("sqrt"); Var("sin"); Var("cos"); Var("abs_float"); Var("int_of_float")]
+        let t = if List.mem e [Var("sqrt"); Var("sin"); Var("cos"); Var("abs_float")]
                 then Type.Float
                 else Type.gentyp () in
         unify (g env e) (Type.Fun(List.map (g env) es, t));
@@ -156,6 +156,7 @@ let rec g env e = (* 型推論ルーチン (caml2html: typing_g) *)
 
 let f e =
   extenv := M.empty;
+  extenv := M.add "light_dirvec" (Type.Tuple([Type.Array(Type.Float); Type.Array(Type.Array(Type.Float))])) !extenv;
 (*
   (match deref_typ (g M.empty e) with
   | Type.Unit -> ()
