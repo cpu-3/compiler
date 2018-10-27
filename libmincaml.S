@@ -4,6 +4,117 @@ min_caml_print_char:
   sb a0, 0(s11)
   ret
 
+# input_char
+min_caml_input_char:
+  li s11, 65536
+  lb a0, 0(s11)
+  ret
+
+read_float_l.39:	 # 0.000000
+	.word	0
+read_float_l.38:	 # 10.000000
+	.word	1092616192
+read_float_inner.1:
+	add	sp, sp, -28
+	sw	ra, 24(sp)
+	nop
+	fsw	f2, 0(sp)
+	fsw	f1, 4(sp)
+	fsw	f0, 8(sp)
+	sw	a0, 12(sp)
+	call	min_caml_input_char
+	sw	a0, 16(sp)
+	call	min_caml_print_int
+	lw	a0, 16(sp)
+	li	t1, 46
+	bne	a0, t1, beq_else.62
+	lw	a0, 12(sp)
+	li	t1, 0
+	bne	a0, t1, beq_else.63
+	flw	f0, 4(sp)
+	flw	f1, 8(sp)
+	fadd.s	f0, f1, f0
+	j	read_float_inner.1_end
+beq_else.63:
+	li	a0, 0
+	li	t1, read_float_l.38
+	flw	f2, 0(t1)
+	flw	f0, 8(sp)
+	flw	f1, 4(sp)
+	call	read_float_inner.1
+	j	read_float_inner.1_end
+beq_else.62:
+	li	t1, 48
+	blt	a0, t1, bge_else.64
+	li	t1, 57
+	bgt	a0, t1, ble_else.65
+	lw	a1, 12(sp)
+	li	t1, 0
+	bne	a1, t1, beq_else.66
+	sub	a0, a0, 48
+	call	min_caml_float_of_int
+	flw	f1, 0(sp)
+	fdiv.s	f0, f0, f1
+	flw	f2, 4(sp)
+	fadd.s	f0, f2, f0
+	li	t1, read_float_l.38
+	flw	f2, 0(t1)
+	fmul.s	f2, f1, f2
+	flw	f1, 8(sp)
+	lw	a0, 12(sp)
+	fmv.s	f31, f1
+	fmv.s	f1, f0
+	fmv.s	f0, f31
+	call	read_float_inner.1
+	j	read_float_inner.1_end
+beq_else.66:
+	li	t1, read_float_l.38
+	flw	f0, 0(t1)
+	flw	f1, 8(sp)
+	fmul.s	f0, f1, f0
+	sub	a0, a0, 48
+	fsw	f0, 20(sp)
+	call	min_caml_float_of_int
+	flw	f1, 20(sp)
+	fadd.s	f0, f1, f0
+	flw	f1, 4(sp)
+	flw	f2, 0(sp)
+	lw	a0, 12(sp)
+	call	read_float_inner.1
+	j	read_float_inner.1_end
+ble_else.65:
+	flw	f0, 4(sp)
+	flw	f1, 8(sp)
+	fadd.s	f0, f1, f0
+	j	read_float_inner.1_end
+bge_else.64:
+	flw	f0, 4(sp)
+	flw	f1, 8(sp)
+	fadd.s	f0, f1, f0
+	j	read_float_inner.1_end
+read_float_inner.1_end:
+	lw	ra, 24(sp)
+	add	sp, sp, 28
+	ret
+
+# read_float
+min_caml_read_float:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	li	t1, read_float_l.39
+	flw	f0, 0(t1)
+	li	t1, read_float_l.39
+	flw	f1, 0(t1)
+	li	a0, 1
+	li	t1, read_float_l.38
+	flw	f2, 0(t1)
+	call	read_float_inner.1
+	j	read_float.6_end
+read_float.6_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
+
 # print_newline
 min_caml_print_newline:
   li a0, 10
