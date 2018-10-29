@@ -10,107 +10,113 @@ min_caml_input_char:
   lb a0, 0(s11)
   ret
 
-read_float_l.39:	 # 0.000000
-	.word	0
-read_float_l.38:	 # 10.000000
-	.word	1092616192
-read_float_inner.1:
-	add	sp, sp, -28
-	sw	ra, 24(sp)
-	nop
-	fsw	f2, 0(sp)
-	fsw	f1, 4(sp)
-	fsw	f0, 8(sp)
-	sw	a0, 12(sp)
-	call	min_caml_input_char
-	sw	a0, 16(sp)
-	call	min_caml_print_int
-	lw	a0, 16(sp)
-	li	t1, 46
-	bne	a0, t1, beq_else.62
-	lw	a0, 12(sp)
-	li	t1, 0
-	bne	a0, t1, beq_else.63
-	flw	f0, 4(sp)
-	flw	f1, 8(sp)
-	fadd.s	f0, f1, f0
-	j	read_float_inner.1_end
-beq_else.63:
-	li	a0, 0
-	li	t1, read_float_l.38
-	flw	f2, 0(t1)
-	flw	f0, 8(sp)
-	flw	f1, 4(sp)
-	call	read_float_inner.1
-	j	read_float_inner.1_end
-beq_else.62:
-	li	t1, 48
-	blt	a0, t1, bge_else.64
-	li	t1, 57
-	bgt	a0, t1, ble_else.65
-	lw	a1, 12(sp)
-	li	t1, 0
-	bne	a1, t1, beq_else.66
-	sub	a0, a0, 48
-	call	min_caml_float_of_int
-	flw	f1, 0(sp)
-	fdiv.s	f0, f0, f1
-	flw	f2, 4(sp)
-	fadd.s	f0, f2, f0
-	li	t1, read_float_l.38
-	flw	f2, 0(t1)
-	fmul.s	f2, f1, f2
-	flw	f1, 8(sp)
-	lw	a0, 12(sp)
-	fmv.s	f31, f1
-	fmv.s	f1, f0
-	fmv.s	f0, f31
-	call	read_float_inner.1
-	j	read_float_inner.1_end
-beq_else.66:
-	li	t1, read_float_l.38
-	flw	f0, 0(t1)
-	flw	f1, 8(sp)
-	fmul.s	f0, f1, f0
-	sub	a0, a0, 48
-	fsw	f0, 20(sp)
-	call	min_caml_float_of_int
-	flw	f1, 20(sp)
-	fadd.s	f0, f1, f0
-	flw	f1, 4(sp)
-	flw	f2, 0(sp)
-	lw	a0, 12(sp)
-	call	read_float_inner.1
-	j	read_float_inner.1_end
-ble_else.65:
-	flw	f0, 4(sp)
-	flw	f1, 8(sp)
-	fadd.s	f0, f1, f0
-	j	read_float_inner.1_end
-bge_else.64:
-	flw	f0, 4(sp)
-	flw	f1, 8(sp)
-	fadd.s	f0, f1, f0
-	j	read_float_inner.1_end
-read_float_inner.1_end:
-	lw	ra, 24(sp)
-	add	sp, sp, 28
-	ret
 
 # read_float
 min_caml_read_float:
+	add	sp, sp, -12
+	sw	ra, 8(sp)
+	sw  s2, 4(sp)
+	li s2, 0
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+	sw  s2, 0(sp)
+	flw f0, 0(sp)
+read_float_end:
+	lw  ra, 8(sp)
+	lw  s2, 4(sp)
+	add	sp, sp, 12
+	ret
+
+read_int_1.1:
+	add	sp, sp, -12
+	sw	ra, 8(sp)
+	nop
+	sw	a1, 0(sp)
+	sw	a0, 4(sp)
+	call	min_caml_input_char
+	sub	a0, a0, 48
+	li	t1, 0
+	blt	a0, t1, bge_else.35
+	li	t1, 9
+	bgt	a0, t1, ble_else.36
+	lw	a1, 4(sp)
+	slli t1, a1, 1
+	slli a1, a1, 3
+	add	a1, a1, t1
+	add	a0, a1, a0
+	lw	a1, 0(sp)
+	call	read_int_1.1
+	j	read_int_1.1_end
+ble_else.36:
+	lw	a0, 0(sp)
+	li	t1, 0
+	bne	a0, t1, beq_else.37
+	lw	a0, 4(sp)
+	j	read_int_1.1_end
+beq_else.37:
+	lw	a0, 4(sp)
+	sub	a0, zero, a0
+	j	read_int_1.1_end
+bge_else.35:
+	lw	a0, 0(sp)
+	li	t1, 0
+	bne	a0, t1, beq_else.38
+	lw	a0, 4(sp)
+	j	read_int_1.1_end
+beq_else.38:
+	lw	a0, 4(sp)
+	sub	a0, zero, a0
+	j	read_int_1.1_end
+read_int_1.1_end:
+	lw	ra, 8(sp)
+	add	sp, sp, 12
+	ret
+read_int_2.4:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
-	li	t1, read_float_l.39
-	flw	f0, 0(t1)
-	li	t1, read_float_l.39
-	flw	f1, 0(t1)
-	li	a0, 1
-	li	t1, read_float_l.38
-	flw	f2, 0(t1)
-	call	read_float_inner.1
-	j	read_float.6_end
-read_float.6_end:
+	nop
+	call	min_caml_input_char
+	li	t1, 45
+	bne	a0, t1, beq_else.39
+	li	a0, 0
+	li	a1, 1
+	call	read_int_1.1
+	j	read_int_2.4_end
+beq_else.39:
+	li	t1, 48
+	blt	a0, t1, bge_else.40
+	li	t1, 57
+	bgt	a0, t1, ble_else.41
+	sub	a0, a0, 48
+	li	a1, 0
+	call	read_int_1.1
+	j	read_int_2.4_end
+ble_else.41:
+	li	a0, 0
+	j	read_int_2.4_end
+bge_else.40:
+	li	a0, 0
+	j	read_int_2.4_end
+read_int_2.4_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
+min_caml_read_int:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	nop
+	call	read_int_2.4
+	j	min_caml_read_int_end
+min_caml_read_int_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
@@ -246,6 +252,13 @@ min_caml_float_of_int:
   fcvt.s.w f0, a0
   ret
 
+# 不完全(参照神資料)
+# floor
+min_caml_floor:
+    call min_caml_int_of_float
+    call min_caml_float_of_int
+    ret
+
 # abs_float
 min_caml_abs_float:
   add sp, sp, -4
@@ -261,6 +274,14 @@ min_caml_abs_float_end:
 	flw	f1, 0(sp)
   add sp, sp, 4
   ret
+
+min_caml_fabs:
+	call min_caml_abs_float
+	ret
+
+min_caml_fless:
+	flt.s a0, f0, f1
+	ret
 
 # cos, sin
 l.150:	 # 3.141593
@@ -671,3 +692,144 @@ min_caml_cos:
 	flw	f1, 4(sp)
   add sp, sp, 8
   ret
+
+l.73:	 # 1.570796
+	.word	1070141403
+l.72:	 # 0.785398
+	.word	1061752795
+l.71:	 # 2.437500
+	.word	1075576832
+l.70:	 # 0.437500
+	.word	1054867456
+l.66:	 # 1.000000
+	.word	1065353216
+l.62:	 # -1.000000
+	.word	-1082130432
+l.61:	 # 0.000000
+	.word	0
+l.60:	 # 0.060035
+	.word	1031137221
+l.59:	 # 0.089764
+	.word	1035458158
+l.58:	 # 0.111111
+	.word	1038323256
+l.57:	 # 0.142857
+	.word	1041385765
+l.56:	 # 0.200000
+	.word	1045220557
+l.55:	 # 0.333333
+	.word	1051372202
+kernel_atan.1:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	fmul.s	f1, f0, f0
+	fmul.s	f2, f1, f0
+	fmul.s	f3, f2, f1
+	fmul.s	f4, f3, f1
+	fmul.s	f4, f4, f1
+	fmul.s	f5, f4, f1
+	fmul.s	f1, f5, f1
+	li	t1, l.55
+	flw	f6, 0(t1)
+	fmul.s	f2, f6, f2
+	fsub.s	f0, f0, f2
+	li	t1, l.56
+	flw	f2, 0(t1)
+	fmul.s	f2, f2, f3
+	fadd.s	f0, f0, f2
+	li	t1, l.57
+	flw	f2, 0(t1)
+	fmul.s	f2, f2, f3
+	fsub.s	f0, f0, f2
+	li	t1, l.58
+	flw	f2, 0(t1)
+	fmul.s	f2, f2, f4
+	fadd.s	f0, f0, f2
+	li	t1, l.59
+	flw	f2, 0(t1)
+	fmul.s	f2, f2, f5
+	fsub.s	f0, f0, f2
+	li	t1, l.60
+	flw	f2, 0(t1)
+	fmul.s	f1, f2, f1
+	fadd.s	f0, f0, f1
+	j	kernel_atan.1_end
+kernel_atan.1_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
+min_caml_atan:
+	add	sp, sp, -16
+	sw	ra, 12(sp)
+	li	t1, l.61
+	flw	f1, 0(t1)
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.79
+	li	t1, l.66
+	flw	f1, 0(t1)
+	mv	a0, hp
+	add	hp, hp, 16
+	fsw	f1, 8(a0)
+	fsw	f0, 0(a0)
+	j	fle.s_cont.80
+fle.s_else.79:
+	li	t1, l.62
+	flw	f1, 0(t1)
+	fmul.s	f1, f1, f0
+	li	t1, l.62
+	flw	f2, 0(t1)
+	mv	a0, hp
+	add	hp, hp, 16
+	fsw	f2, 8(a0)
+	fsw	f1, 0(a0)
+fle.s_cont.80:
+	flw	f1, 8(a0)
+	flw	f2, 0(a0)
+	li	t1, l.70
+	flw	f3, 0(t1)
+	fle.s	t1, f3, f2
+	beq	t1, zero, fle.s_else.81
+	li	t1, l.71
+	flw	f0, 0(t1)
+	fle.s	t1, f0, f2
+	beq	t1, zero, fle.s_else.82
+	li	t1, l.73
+	flw	f0, 0(t1)
+	li	t1, l.66
+	flw	f3, 0(t1)
+	fdiv.s	f2, f3, f2
+	fsw	f1, 0(sp)
+	fsw	f0, 4(sp)
+	fmv.s	f0, f2
+	call	kernel_atan.1
+	flw	f1, 4(sp)
+	fsub.s	f0, f1, f0
+	flw	f1, 0(sp)
+	fmul.s	f0, f1, f0
+	j	min_caml_atan.3_end
+fle.s_else.82:
+	li	t1, l.72
+	flw	f0, 0(t1)
+	li	t1, l.66
+	flw	f3, 0(t1)
+	fsub.s	f3, f2, f3
+	li	t1, l.66
+	flw	f4, 0(t1)
+	fadd.s	f2, f2, f4
+	fdiv.s	f2, f3, f2
+	fsw	f1, 0(sp)
+	fsw	f0, 8(sp)
+	fmv.s	f0, f2
+	call	kernel_atan.1
+	flw	f1, 8(sp)
+	fadd.s	f0, f1, f0
+	flw	f1, 0(sp)
+	fmul.s	f0, f1, f0
+	j	min_caml_atan.3_end
+fle.s_else.81:
+	call	kernel_atan.1
+	j	min_caml_atan.3_end
+min_caml_atan.3_end:
+	lw	ra, 12(sp)
+	add	sp, sp, 16
+	ret
