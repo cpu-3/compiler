@@ -757,7 +757,7 @@ kernel_atan.1_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
-min_caml_atan.3:
+min_caml_atan:
 	add	sp, sp, -16
 	sw	ra, 12(sp)
 	li	t1, l.61
