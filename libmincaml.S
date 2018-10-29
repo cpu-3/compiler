@@ -31,8 +31,9 @@ min_caml_read_float:
 	sw  s2, 0(sp)
 	flw f0, 0(sp)
 read_float_end:
-	lw	ra, 4(sp)
-	add	sp, sp, 4
+	lw  ra, 8(sp)
+	lw  s2, 4(sp)
+	add	sp, sp, 12
 	ret
 
 read_int_1.1:
