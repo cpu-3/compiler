@@ -10,27 +10,113 @@ min_caml_input_char:
   lb a0, 0(s11)
   ret
 
+
 # read_float
 min_caml_read_float:
 	add	sp, sp, -12
 	sw	ra, 8(sp)
-    sw  s2, 4(sp)
-    li s2, 0
-    call min_caml_input_char
-    add s2, s2, a0
-    slli s2, s2, 8
-    call min_caml_input_char
-    add s2, s2, a0
-    slli s2, s2, 8
-    call min_caml_input_char
-    add s2, s2, a0
-    slli s2, s2, 8
-    call min_caml_input_char
-    add s2, s2, a0
-    sw  s2, 0(sp)
-    flw f0, 0(sp)
+	sw  s2, 4(sp)
+	li s2, 0
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+	sw  s2, 0(sp)
+	flw f0, 0(sp)
 read_float_end:
 	lw	ra, 4(sp)
+	add	sp, sp, 4
+	ret
+
+read_int_1.1:
+	add	sp, sp, -12
+	sw	ra, 8(sp)
+	nop
+	sw	a1, 0(sp)
+	sw	a0, 4(sp)
+	call	min_caml_input_char
+	sub	a0, a0, 48
+	li	t1, 0
+	blt	a0, t1, bge_else.35
+	li	t1, 9
+	bgt	a0, t1, ble_else.36
+	lw	a1, 4(sp)
+	slli t1, a1, 1
+	slli a1, a1, 3
+	add	a1, a1, t1
+	add	a0, a1, a0
+	lw	a1, 0(sp)
+	call	read_int_1.1
+	j	read_int_1.1_end
+ble_else.36:
+	lw	a0, 0(sp)
+	li	t1, 0
+	bne	a0, t1, beq_else.37
+	lw	a0, 4(sp)
+	j	read_int_1.1_end
+beq_else.37:
+	lw	a0, 4(sp)
+	sub	a0, zero, a0
+	j	read_int_1.1_end
+bge_else.35:
+	lw	a0, 0(sp)
+	li	t1, 0
+	bne	a0, t1, beq_else.38
+	lw	a0, 4(sp)
+	j	read_int_1.1_end
+beq_else.38:
+	lw	a0, 4(sp)
+	sub	a0, zero, a0
+	j	read_int_1.1_end
+read_int_1.1_end:
+	lw	ra, 8(sp)
+	add	sp, sp, 12
+	ret
+read_int_2.4:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	nop
+	call	min_caml_input_char
+	li	t1, 45
+	bne	a0, t1, beq_else.39
+	li	a0, 0
+	li	a1, 1
+	call	read_int_1.1
+	j	read_int_2.4_end
+beq_else.39:
+	li	t1, 48
+	blt	a0, t1, bge_else.40
+	li	t1, 57
+	bgt	a0, t1, ble_else.41
+	sub	a0, a0, 48
+	li	a1, 0
+	call	read_int_1.1
+	j	read_int_2.4_end
+ble_else.41:
+	li	a0, 0
+	j	read_int_2.4_end
+bge_else.40:
+	li	a0, 0
+	j	read_int_2.4_end
+read_int_2.4_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
+min_caml_read_int:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	nop
+	call	read_int_2.4
+	j	min_caml_read_int_end
+min_caml_read_int_end:
+	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
 
@@ -165,6 +251,13 @@ min_caml_float_of_int:
   fcvt.s.w f0, a0
   ret
 
+# 不完全(参照神資料)
+# floor
+min_caml_floor:
+    call min_caml_int_of_float
+    call min_caml_float_of_int
+    ret
+
 # abs_float
 min_caml_abs_float:
   add sp, sp, -4
@@ -180,6 +273,14 @@ min_caml_abs_float_end:
 	flw	f1, 0(sp)
   add sp, sp, 4
   ret
+
+min_caml_fabs:
+	call min_caml_abs_float
+	ret
+
+min_caml_fless:
+	flt.s a0, f0, f1
+	ret
 
 # cos, sin
 l.150:	 # 3.141593
@@ -590,3 +691,7 @@ min_caml_cos:
 	flw	f1, 4(sp)
   add sp, sp, 8
   ret
+
+# TODO
+min_caml_atan:
+    ret
