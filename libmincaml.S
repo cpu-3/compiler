@@ -833,3 +833,81 @@ min_caml_atan.3_end:
 	lw	ra, 12(sp)
 	add	sp, sp, 16
 	ret
+
+# fiszero
+min_caml_fiszero:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	li	t1, l.119
+	flw	f1, 0(t1)
+	feq.s	t1, f0, f1
+	beq	t1, zero, feq.s_else.9
+	li	a0, 1
+	j	min_caml_fiszero._end
+feq.s_else.9:
+	li	a0, 0
+	j	min_caml_fiszero._end
+min_caml_fiszero._end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
+
+# fispos
+min_caml_fispos:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	li	t1, l.119
+	flw	f1, 0(t1)
+	fle.s	t1, f0, f1
+	beq	t1, zero, fle.s_else.9
+	li	a0, 0
+	j	fispos.1_end
+fle.s_else.9:
+	li	a0, 1
+	j	fispos.1_end
+fispos.1_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
+
+# fisneg
+min_caml_fisneg:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	li	t1, l.119
+	flw	f1, 0(t1)
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.9
+	li	a0, 0
+	j	fisneg.1_end
+fle.s_else.9:
+	li	a0, 1
+	j	fisneg.1_end
+fisneg.1_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
+
+# fsqr
+min_caml_fsqr:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	fmul.s	f0, f0, f0
+	j	fsqr.1_end
+fsqr.1_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
+
+# fhalf
+min_caml_fhalf:
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	li	t1, l.127
+	flw	f1, 0(t1)
+	fmul.s	f0, f0, f1
+	j	fhalf.1_end
+fhalf.1_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret

@@ -266,7 +266,7 @@ let f oc (Prog(data, fundefs, e)) =
   stackset := S.empty;
   stackmap := [];
   let buffer = Buffer.create 128 in
-  g buffer "hoge" (NonTail("_R_0"), e);
+  g buffer "hoge" (NonTail("x0"), e);
   let n = stacksize () in
   Printf.fprintf oc "_min_caml_start: # main entry point\n";
   if n = 4 then ()
