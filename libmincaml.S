@@ -36,89 +36,27 @@ read_float_end:
 	add	sp, sp, 12
 	ret
 
-read_int_1.1:
+min_caml_read_int:
 	add	sp, sp, -12
 	sw	ra, 8(sp)
-	nop
-	sw	a1, 0(sp)
-	sw	a0, 4(sp)
-	call	min_caml_input_char
-	sub	a0, a0, 48
-	li	t1, 0
-	blt	a0, t1, bge_else.35
-	li	t1, 9
-	bgt	a0, t1, ble_else.36
-	lw	a1, 4(sp)
-	slli t1, a1, 1
-	slli a1, a1, 3
-	add	a1, a1, t1
-	add	a0, a1, a0
-	lw	a1, 0(sp)
-	call	read_int_1.1
-	j	read_int_1.1_end
-ble_else.36:
-	lw	a0, 0(sp)
-	li	t1, 0
-	bne	a0, t1, beq_else.37
-	lw	a0, 4(sp)
-	j	read_int_1.1_end
-beq_else.37:
-	lw	a0, 4(sp)
-	sub	a0, zero, a0
-	j	read_int_1.1_end
-bge_else.35:
-	lw	a0, 0(sp)
-	li	t1, 0
-	bne	a0, t1, beq_else.38
-	lw	a0, 4(sp)
-	j	read_int_1.1_end
-beq_else.38:
-	lw	a0, 4(sp)
-	sub	a0, zero, a0
-	j	read_int_1.1_end
-read_int_1.1_end:
-	lw	ra, 8(sp)
+	sw  s2, 4(sp)
+	li s2, 0
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+	slli s2, s2, 8
+	call min_caml_input_char
+	add s2, s2, a0
+    mv a0, s2
+read_float_end:
+	lw  ra, 8(sp)
+	lw  s2, 4(sp)
 	add	sp, sp, 12
-	ret
-read_int_2.4:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
-	nop
-	call	min_caml_input_char
-	li	t1, 45
-	bne	a0, t1, beq_else.39
-	li	a0, 0
-	li	a1, 1
-	call	read_int_1.1
-	j	read_int_2.4_end
-beq_else.39:
-	li	t1, 48
-	blt	a0, t1, bge_else.40
-	li	t1, 57
-	bgt	a0, t1, ble_else.41
-	sub	a0, a0, 48
-	li	a1, 0
-	call	read_int_1.1
-	j	read_int_2.4_end
-ble_else.41:
-	li	a0, 0
-	j	read_int_2.4_end
-bge_else.40:
-	li	a0, 0
-	j	read_int_2.4_end
-read_int_2.4_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
-min_caml_read_int:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
-	nop
-	call	read_int_2.4
-	j	min_caml_read_int_end
-min_caml_read_int_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
 	ret
 
 # print_newline
