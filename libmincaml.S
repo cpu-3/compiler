@@ -193,8 +193,12 @@ min_caml_float_of_int:
 # 不完全(参照神資料)
 # floor
 min_caml_floor:
+  	add sp, sp, -4
+	sw	ra, 0(sp)
     call min_caml_int_of_float
     call min_caml_float_of_int
+	lw	ra, 0(sp)
+  	add sp, sp, 4
     ret
 
 # abs_float
@@ -214,8 +218,7 @@ min_caml_abs_float_end:
   ret
 
 min_caml_fabs:
-	call min_caml_abs_float
-	ret
+	j min_caml_abs_float
 
 min_caml_fless:
 	flt.s a0, f0, f1
