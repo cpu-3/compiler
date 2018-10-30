@@ -35,6 +35,7 @@ def diff():
     with open(tmp2) as f:
         s2 = f.read()
 
+    run('diff {} {}'.format(tmp1, tmp2))
     return s1 != s2
 
 
