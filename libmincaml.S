@@ -53,7 +53,7 @@ min_caml_read_int:
 	call min_caml_input_char
 	add s2, s2, a0
     mv a0, s2
-read_float_end:
+read_int_end:
 	lw  ra, 8(sp)
 	lw  s2, 4(sp)
 	add	sp, sp, 12
