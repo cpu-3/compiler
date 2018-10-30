@@ -667,12 +667,12 @@ kernel_atan.1:
 	fmul.s	f2, f1, f0
 	fmul.s	f3, f2, f1
 	fmul.s	f4, f3, f1
-	fmul.s	f4, f4, f1
 	fmul.s	f5, f4, f1
-	fmul.s	f1, f5, f1
+	fmul.s	f6, f5, f1
+	fmul.s	f1, f6, f1
 	li	t1, l.55
-	flw	f6, 0(t1)
-	fmul.s	f2, f6, f2
+	flw	f7, 0(t1)
+	fmul.s	f2, f7, f2
 	fsub.s	f0, f0, f2
 	li	t1, l.56
 	flw	f2, 0(t1)
@@ -680,15 +680,15 @@ kernel_atan.1:
 	fadd.s	f0, f0, f2
 	li	t1, l.57
 	flw	f2, 0(t1)
-	fmul.s	f2, f2, f3
+	fmul.s	f2, f2, f4
 	fsub.s	f0, f0, f2
 	li	t1, l.58
 	flw	f2, 0(t1)
-	fmul.s	f2, f2, f4
+	fmul.s	f2, f2, f5
 	fadd.s	f0, f0, f2
 	li	t1, l.59
 	flw	f2, 0(t1)
-	fmul.s	f2, f2, f5
+	fmul.s	f2, f2, f6
 	fsub.s	f0, f0, f2
 	li	t1, l.60
 	flw	f2, 0(t1)
