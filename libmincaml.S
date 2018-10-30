@@ -190,16 +190,35 @@ min_caml_float_of_int:
   fcvt.s.w f0, a0
   ret
 
-# 不完全(参照神資料)
 # floor
 min_caml_floor:
-  	add sp, sp, -4
-	sw	ra, 0(sp)
-    call min_caml_int_of_float
-    call min_caml_float_of_int
-	lw	ra, 0(sp)
-  	add sp, sp, 4
-    ret
+	add	sp, sp, -12
+	sw	ra, 8(sp)
+	fsw	f0, 0(sp)
+	call	min_caml_int_of_float
+	call	min_caml_float_of_int
+	flw	f0, 0(sp)
+	sw	a0, 4(sp)
+	call	min_caml_float_of_int
+	lw	a1, 4(sp)
+	sub	a2, a1, 1
+	bgt	a0, a2, ble_else.18
+	mv	a0, a1
+	j	floor.1_end
+ble_else.18:
+	flw	f0, 0(sp)
+	call	min_caml_float_of_int
+	lw	a1, 4(sp)
+	bgt	a1, a0, ble_else.19
+	mv	a0, a1
+	j	floor.1_end
+ble_else.19:
+	sub	a0, a1, 1
+	j	floor.1_end
+floor.1_end:
+	lw	ra, 8(sp)
+	add	sp, sp, 12
+	ret
 
 # abs_float
 min_caml_abs_float:
