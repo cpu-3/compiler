@@ -40,7 +40,11 @@ def diff():
 
 tests = [
     'sin',
-    'cos'
+    'cos',
+    'abs',
+    'atan',
+    'truncate',
+    'fless',
 ]
 
 
