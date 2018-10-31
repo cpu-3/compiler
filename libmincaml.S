@@ -192,32 +192,33 @@ min_caml_float_of_int:
 
 # floor
 min_caml_floor:
-	add	sp, sp, -12
-	sw	ra, 8(sp)
+	add	sp, sp, -8
+	sw	ra, 4(sp)
 	fsw	f0, 0(sp)
-	call	min_caml_int_of_float
-	call	min_caml_float_of_int
-	flw	f0, 0(sp)
-	sw	a0, 4(sp)
-	call	min_caml_float_of_int
-	lw	a1, 4(sp)
-	sub	a2, a1, 1
-	bgt	a0, a2, ble_else.18
-	mv	a0, a1
+  fcvt.w.s a0, f0
+  fcvt.s.w f0, a0
+	li	t1, l.123
+	flw	f1, 0(t1)
+	fsub.s	f1, f0, f1
+	flw	f2, 0(sp)
+	fle.s	t1, f2, f1
+	beq	t1, zero, fle.s_else.15
+  fcvt.w.s a0, f0
 	j	floor.1_end
-ble_else.18:
-	flw	f0, 0(sp)
-	call	min_caml_float_of_int
-	lw	a1, 4(sp)
-	bgt	a1, a0, ble_else.19
-	mv	a0, a1
+fle.s_else.15:
+	fle.s	t1, f0, f2
+	beq	t1, zero, fle.s_else.16
+  fcvt.w.s a0, f0
 	j	floor.1_end
-ble_else.19:
-	sub	a0, a1, 1
+fle.s_else.16:
+	li	t1, l.123
+	flw	f1, 0(t1)
+	fsub.s	f0, f0, f1
+  fcvt.w.s a0, f0
 	j	floor.1_end
 floor.1_end:
-	lw	ra, 8(sp)
-	add	sp, sp, 12
+	lw	ra, 4(sp)
+	add	sp, sp, 8
 	ret
 
 # abs_float
