@@ -4,6 +4,22 @@ open KNormal
 
 let find x env = try M.find x env with Not_found -> x
 
+let rec g' e emap =
+  try let x = List.assoc e emap in Var(x)
+  with Not_found ->
+    match e with
+    | IfEq(x, y, e1, e2) -> IfEq(x, y, g' e1 emap, g' e2 emap)
+    | IfLE(x, y, e1, e2) -> IfLE(y, y, g' e1 emap, g' e2 emap)
+    | Let((x, t), e1, e2) ->
+        let e1' = g' e1 emap in
+        let emap' = match e1' with
+                      | Var(_) -> emap
+                      | _ -> (e1, x)::emap; in
+        Let((x, t), e1', g' e2 emap')
+    | LetRec(fd, e) -> LetRec(fd, g' e emap)
+    | LetTuple(xts, y, e) -> LetTuple(xts, y, g' e emap)
+    | _ -> e
+
 let rec g env = function (* α変換ルーチン本体 (caml2html: alpha_g) *)
   | Unit -> Unit
   | Int(i) -> Int(i)
@@ -46,4 +62,4 @@ let rec g env = function (* α変換ルーチン本体 (caml2html: alpha_g) *)
   | ExtTuple(x) -> ExtTuple(x)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
 
-let f = g M.empty
+let f e = g' (g M.empty e) []
