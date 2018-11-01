@@ -4,8 +4,9 @@ open KNormal
 
 let find x env = try M.find x env with Not_found -> x
 
+(* 共通部分式削除 *)
 let rec g' e emap =
-  try let x = List.assoc e emap in Var(x)
+  try if Elim.effect e then raise Not_found else let x = List.assoc e emap in Var(x)
   with Not_found ->
     match e with
     | IfEq(x, y, e1, e2) -> IfEq(x, y, g' e1 emap, g' e2 emap)
