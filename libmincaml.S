@@ -152,14 +152,12 @@ min_caml_create_array:
   mv  a0, hp
 create_array_loop:
 	bne t1, zero, create_array_cont
-	j create_array_end
+  ret
 create_array_cont:
 	sw  a1, 0(hp)
 	sub t1, t1, 1
 	add hp, hp, 4
 	j create_array_loop
-create_array_end:
-	ret
 
 #	create_float_array
 min_caml_create_float_array:
@@ -167,14 +165,12 @@ min_caml_create_float_array:
   mv  a0, hp
 create_float_array_loop:
 	bne t1, zero, create_float_array_cont
-	j create_float_array_end
+	ret
 create_float_array_cont:
 	fsw  f0, 0(hp)
 	sub t1, t1, 1
 	add hp, hp, 4
 	j create_float_array_loop
-create_float_array_end:
-	ret
 
 # truncate (float -> int)
 min_caml_truncate:
@@ -183,7 +179,8 @@ min_caml_truncate:
 
 # int_of_float (float -> int)
 min_caml_int_of_float:
-  j min_caml_truncate
+  fcvt.w.s a0, f0
+  ret
 
 # float_of_int (int -> float)
 min_caml_float_of_int:
