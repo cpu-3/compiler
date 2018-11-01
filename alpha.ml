@@ -10,7 +10,7 @@ let rec g' e emap =
   with Not_found ->
     match e with
     | IfEq(x, y, e1, e2) -> IfEq(x, y, g' e1 emap, g' e2 emap)
-    | IfLE(x, y, e1, e2) -> IfLE(y, y, g' e1 emap, g' e2 emap)
+    | IfLE(x, y, e1, e2) -> IfLE(x, y, g' e1 emap, g' e2 emap)
     | Let((x, t), e1, e2) ->
         let e1' = g' e1 emap in
         let emap' = match e1' with
