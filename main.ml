@@ -15,10 +15,10 @@ let lexbuf outchan nml = (* バッファをコンパイルしてチャンネル�
   let prog =
     (RegAlloc.f
        (Simm.f
-          (Virtual.f
-             (Closure.f
-                (iter !limit
-                   (Alpha.f nml)))))) in
+         (Virtual.f        (* closure.prog -> asm.prog *)
+            (Closure.f     (* knormal.t -> closure.prog *)
+               (let a = iter !limit
+                  (Alpha.f nml) in print_string "KNormal after iter: "; KNormal.print_t a; a))))) in   (* knormal.t -> knormal.t *)
   Asm.print_prog prog;
   Emit.f outchan prog
 
@@ -30,13 +30,14 @@ let file f = (* ファイルをコンパイルしてファイルに出力する 
   let inchan = open_in (f ^ ".ml") in
   let outchan = open_out (f ^ ".s") in
   let stx = Parser.exp Lexer.token (Lexing.from_channel inchan) in
-  let nml = KNormal.f (Typing.f stx) in
+  let nml = KNormal.f (Typing.f stx) in (* syntax.t -> syntax.t -> knormal.t *)
   try
     print_string "Syntax: "; (* Syntax.tの中間結果 *)
     Syntax.print_t stx;
     print_newline ();
-    print_string "Normal: "; (* KNormal.tの中間結果 *)
+    print_string "KNormal: "; (* KNormal.tの中間結果 *)
     KNormal.print_t nml;
+    print_newline ();
     lexbuf outchan nml;
     close_in inchan;
     close_out outchan;

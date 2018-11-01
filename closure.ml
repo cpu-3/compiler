@@ -99,7 +99,7 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
       Format.eprintf "directly applying %s@." x;
       AppDir(Id.L(x), ys)
   | KNormal.App(f, xs) -> AppCls(f, xs)
-  | KNormal.Tuple(xs) -> Tuple(xs)
+  | KNormal.Tuple(xs, _) -> Tuple(xs)
   | KNormal.LetTuple(xts, y, e) -> LetTuple(xts, y, g (M.add_list xts env) known e)
   | KNormal.Get(x, y) -> Get(x, y)
   | KNormal.Put(x, y, z) -> Put(x, y, z)
