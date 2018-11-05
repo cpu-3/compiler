@@ -872,3 +872,42 @@ fhalf.1_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
+
+fsqrt_24:	 # 1.500000
+	.word	1069547520
+fsqrt_23:	 # 0.500000
+	.word	1056964608
+fsqrt_123:	 # 1.000000
+	.word	1065353216
+min_caml_sqrt:
+	add	sp, sp, -8
+	sw	ra, 4(sp)
+	li	t1, fsqrt_23
+	flw	f1, 0(t1)
+	fmul.s	f1, f0, f1
+
+	fsw f0, 0(sp)
+	lw  t2, 0(sp)
+
+	srli t2, t2, 1
+	li t3, 1597463007
+	sub t2, t3, t2
+
+	sw  t2, 0(sp)
+	flw f0, 0(sp)
+
+	li	t1, fsqrt_24
+	flw	f2, 0(t1)
+	fmul.s	f1, f1, f0
+	fmul.s	f1, f1, f0
+	fsub.s	f1, f2, f1
+	fmul.s	f0, f0, f1
+
+	li	t1, fsqrt_123
+	flw	f2, 0(t1)
+	fdiv.s f0, f2, f0
+
+	lw	ra, 4(sp)
+	add	sp, sp, 8
+	ret
+
