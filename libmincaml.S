@@ -1007,29 +1007,31 @@ min_caml_ftoi_inner:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
 	ret
-min_caml_itof_20_0:	 # 0.000000
+min_caml_ftoi_l_24_1:	 # 0.500000
+	.word	1056964608
+min_caml_ftoi_l_23_1:	 # 0.000000
 	.word	0
-min_caml_itof_19_1:	 # -1.000000
+min_caml_itof_22:	 # -1.000000
 	.word	-1082130432
 min_caml_itof:
 	add	sp, sp, -8
 	sw	ra, 4(sp)
 	li	t1, 0
-	blt	a0, t1, bge_else.24
+	blt	a0, t1, bge_else.28
 	mv	a1, a0
-	j	bge_cont.25
-bge_else.24:
+	j	bge_cont.29
+bge_else.28:
 	sub	a1, zero, a0
-bge_cont.25:
+bge_cont.29:
 	sw	a0, 0(sp)
 	mv	a0, a1
 	call	min_caml_itof_inner
 	lw	a0, 0(sp)
 	li	t1, 0
-	blt	a0, t1, bge_else.26
+	blt	a0, t1, bge_else.30
 	j	min_caml_itof.1_end
-bge_else.26:
-	li	t1, min_caml_itof_19_1
+bge_else.30:
+	li	t1, min_caml_itof_22
 	flw	f1, 0(t1)
 	fmul.s	f0, f1, f0
 	j	min_caml_itof.1_end
@@ -1040,27 +1042,32 @@ min_caml_itof.1_end:
 min_caml_ftoi:
 	add	sp, sp, -8
 	sw	ra, 4(sp)
-	li	t1, min_caml_itof_20_0
+	li	t1, min_caml_ftoi_l_23_1
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
-	beq	t1, zero, fle.s_else.27
-	fmv.s	f1, f0
-	j	fle.s_cont.28
-fle.s_else.27:
-	li	t1, min_caml_itof_19_1
+	beq	t1, zero, fle.s_else.31
+	li	t1, min_caml_ftoi_l_24_1
+	flw	f1, 0(t1)
+	fsub.s	f1, f0, f1
+	j	fle.s_cont.32
+fle.s_else.31:
+	li	t1, min_caml_itof_22
 	flw	f1, 0(t1)
 	fmul.s	f1, f1, f0
-fle.s_cont.28:
+	li	t1, min_caml_ftoi_l_24_1
+	flw	f2, 0(t1)
+	fsub.s	f1, f1, f2
+fle.s_cont.32:
 	fsw	f0, 0(sp)
 	fmv.s	f0, f1
 	call	min_caml_ftoi_inner
-	li	t1, min_caml_itof_20_0
+	li	t1, min_caml_ftoi_l_23_1
 	flw	f0, 0(t1)
 	flw	f1, 0(sp)
 	fle.s	t1, f0, f1
-	beq	t1, zero, fle.s_else.29
+	beq	t1, zero, fle.s_else.33
 	j	min_caml_ftoi.3_end
-fle.s_else.29:
+fle.s_else.33:
 	sub	a0, zero, a0
 	j	min_caml_ftoi.3_end
 min_caml_ftoi.3_end:
