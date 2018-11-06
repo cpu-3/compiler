@@ -178,43 +178,41 @@ create_float_array_end:
 
 # truncate (float -> int)
 min_caml_truncate:
-  fcvt.w.s a0, f0
-  ret
+  j min_caml_ftoi
 
 # int_of_float (float -> int)
 min_caml_int_of_float:
-  j min_caml_truncate
+	j min_caml_truncate
 
 # float_of_int (int -> float)
 min_caml_float_of_int:
-  fcvt.s.w f0, a0
-  ret
+	j min_caml_itof
 
 # floor
 min_caml_floor:
 	add	sp, sp, -8
 	sw	ra, 4(sp)
 	fsw	f0, 0(sp)
-  fcvt.w.s a0, f0
-  fcvt.s.w f0, a0
+	call min_caml_ftoi
+	call min_caml_itof
 	li	t1, l.123
 	flw	f1, 0(t1)
 	fsub.s	f1, f0, f1
 	flw	f2, 0(sp)
 	fle.s	t1, f2, f1
 	beq	t1, zero, fle.s_else.15
-  fcvt.w.s a0, f0
+	call min_caml_ftoi
 	j	floor.1_end
 fle.s_else.15:
 	fle.s	t1, f0, f2
 	beq	t1, zero, fle.s_else.16
-  fcvt.w.s a0, f0
+	call min_caml_ftoi
 	j	floor.1_end
 fle.s_else.16:
 	li	t1, l.123
 	flw	f1, 0(t1)
 	fsub.s	f0, f0, f1
-  fcvt.w.s a0, f0
+	call min_caml_ftoi
 	j	floor.1_end
 floor.1_end:
 	lw	ra, 4(sp)
@@ -222,20 +220,27 @@ floor.1_end:
 	ret
 
 # abs_float
+min_caml_abs_float_9:	 # -1.000000
+	.word	-1082130432
+min_caml_abs_float_8:	 # 0.000000
+	.word	0
 min_caml_abs_float:
-  add sp, sp, -4
-  fsw f1, 0(sp)
-  fcvt.s.w  f1, zero
-  fle.s t1, f1, f0
-  beq t1, zero, neg_float
-  j min_caml_abs_float_end
-neg_float:
-  fneg.s f0, f0
-  j min_caml_abs_float_end
-min_caml_abs_float_end:
-	flw	f1, 0(sp)
-  add sp, sp, 4
-  ret
+	add	sp, sp, -4
+	sw	ra, 0(sp)
+	li	t1, min_caml_abs_float_8
+	flw	f1, 0(t1)
+	fle.s	t1, f1, f0
+	beq	t1, zero, min_caml_abs_fle.s_else.12
+	j	min_caml_abs_float.1_end
+min_caml_abs_fle.s_else.12:
+	li	t1, min_caml_abs_float_9
+	flw	f1, 0(t1)
+	fmul.s	f0, f1, f0
+	j	min_caml_abs_float.1_end
+min_caml_abs_float.1_end:
+	lw	ra, 0(sp)
+	add	sp, sp, 4
+	ret
 
 min_caml_fabs:
 	j min_caml_abs_float
@@ -933,21 +938,13 @@ itof2.3:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
 	li	a1, 8388608
-	bgt	a1, a0, ble_else.54
+	bgt	a1, a0, itof2.3_end
 	li	a1, 8388608
 	sub	a0, a0, a1
 	li	t1, min_caml_itof_46
 	flw	f1, 0(t1)
 	fadd.s	f0, f1, f0
 	call	itof2.3
-	j	itof2.3_end
-ble_else.54:
-	mv	a1, hp
-	add	hp, hp, 16
-	fsw	f0, 8(a1)
-	sw	a0, 0(a1)
-	mv	a0, a1
-	j	itof2.3_end
 itof2.3_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
@@ -958,8 +955,6 @@ min_caml_itof:
 	li	t1, min_caml_itof_47
 	flw	f0, 0(t1)
 	call	itof2.3
-	flw	f0, 8(a0)
-	lw	a0, 0(a0)
 	fsw	f0, 0(sp)
 	call	itof_kern.1
 	flw	f1, 0(sp)
@@ -989,21 +984,13 @@ ftoi2.10:
 	li	t1, min_caml_itof_46
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
-	beq	t1, zero, fle.s_else.55
+	beq	t1, zero, ftoi2.10_end
 	li	t1, min_caml_itof_46
 	flw	f1, 0(t1)
 	fsub.s	f0, f0, f1
 	li	a1, 8388608
 	add	a0, a0, a1
 	call	ftoi2.10
-	j	ftoi2.10_end
-fle.s_else.55:
-	mv	a1, hp
-	add	hp, hp, 8
-	sw	a0, 4(a1)
-	fsw	f0, 0(a1)
-	mv	a0, a1
-	j	ftoi2.10_end
 ftoi2.10_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
@@ -1013,15 +1000,89 @@ min_caml_ftoi:
 	sw	ra, 4(sp)
 	li	a0, 0
 	call	ftoi2.10
-	lw	a1, 4(a0)
-	flw	f0, 0(a0)
-	sw	a1, 0(sp)
+	sw	a0, 0(sp)
 	call	ftoi_kern.8
 	lw	a1, 0(sp)
 	add	a0, a0, a1
-	j	min_caml_ftoi.13_end
-min_caml_ftoi.13_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
+	ret
+
+min_caml_itof_32:	 # -1.000000
+	.word	-1082130432
+min_caml_itof_31:	 # 0.000000
+	.word	0
+min_caml_itof:
+	add	sp, sp, -12
+	sw	ra, 8(sp)
+	li	t1, 0
+	blt	a0, t1, bge_else.38
+	mv	a1, a0
+	j	bge_cont.39
+bge_else.38:
+	li	a1, 0
+	sub	a1, a1, a0
+bge_cont.39:
+	li	t1, min_caml_itof_31
+	flw	f0, 0(t1)
+	sw	a0, 0(sp)
+	mv	a0, a1
+	call	itof2.3
+	flw	f0, 8(a0)
+	lw	a0, 0(a0)
+	fsw	f0, 4(sp)
+	call	itof_kern.1
+	flw	f1, 4(sp)
+	fadd.s	f0, f0, f1
+	lw	a0, 0(sp)
+	li	t1, 0
+	blt	a0, t1, bge_else.40
+	j	min_caml_itof.1_end
+bge_else.40:
+	li	t1, min_caml_itof_32
+	flw	f1, 0(t1)
+	fmul.s	f0, f1, f0
+	j	min_caml_itof.1_end
+min_caml_itof.1_end:
+	lw	ra, 8(sp)
+	add	sp, sp, 12
+	ret
+min_caml_ftoi:
+	add	sp, sp, -12
+	sw	ra, 8(sp)
+	li	t1, min_caml_itof_31
+	flw	f1, 0(t1)
+	fle.s	t1, f1, f0
+	beq	t1, zero, fle.s_else.41
+	fmv.s	f1, f0
+	j	fle.s_cont.42
+fle.s_else.41:
+	li	t1, min_caml_itof_32
+	flw	f1, 0(t1)
+	fmul.s	f1, f1, f0
+fle.s_cont.42:
+	li	a0, 0
+	fsw	f0, 0(sp)
+	fmv.s	f0, f1
+	call	itof2.3
+	lw	a1, 4(a0)
+	lw	a0, 0(a0)
+	sw	a1, 4(sp)
+	call	ftoi_kern.8
+	lw	a1, 4(sp)
+	add	a0, a0, a1
+	li	t1, min_caml_itof_31
+	flw	f0, 0(t1)
+	flw	f1, 0(sp)
+	fle.s	t1, f0, f1
+	beq	t1, zero, fle.s_else.43
+	j	min_caml_ftoi.3_end
+fle.s_else.43:
+	li	a1, 0
+	sub	a0, a1, a0
+	j	min_caml_ftoi.3_end
+min_caml_ftoi.3_end:
+	lw	ra, 8(sp)
+	add	sp, sp, 12
 	ret
 

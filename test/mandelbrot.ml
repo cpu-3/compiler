@@ -18,7 +18,7 @@
                   let zi2 = zi *. zi in
                   if zr2 +. zi2 > 2.0 *. 2.0 then print_int 0 else
                   iloop (i - 1) zr zi zr2 zi2 cr ci in (* iloop in *)
-                iloop 1000 0.0 0.0 0.0 0.0 cr ci;
+                iloop 10 0.0 0.0 0.0 0.0 cr ci;
 (*
                 let i = ref 1000 in
                 let zr = ref 0.0 in
