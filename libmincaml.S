@@ -667,9 +667,9 @@ l.71:	 # 2.437500
 	.word	1075576832
 l.70:	 # 0.437500
 	.word	1054867456
-l.66:	 # 1.000000
+atan_l66:	 # 1.000000
 	.word	1065353216
-l.62:	 # -1.000000
+atan_l62:	 # -1.000000
 	.word	-1082130432
 l.61:	 # 0.000000
 	.word	0
@@ -730,38 +730,38 @@ min_caml_atan:
 	li	t1, l.61
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
-	beq	t1, zero, fle.s_else.79
-	li	t1, l.66
+	beq	t1, zero, atan_fle.s_else.79
+	li	t1, atan_l66
 	flw	f1, 0(t1)
 	mv	a0, hp
 	add	hp, hp, 16
 	fsw	f1, 8(a0)
 	fsw	f0, 0(a0)
-	j	fle.s_cont.80
-fle.s_else.79:
-	li	t1, l.62
+	j	atan_fle.s_cont.80
+atan_fle.s_else.79:
+	li	t1, atan_l62
 	flw	f1, 0(t1)
 	fmul.s	f1, f1, f0
-	li	t1, l.62
+	li	t1, atan_l62
 	flw	f2, 0(t1)
 	mv	a0, hp
 	add	hp, hp, 16
 	fsw	f2, 8(a0)
 	fsw	f1, 0(a0)
-fle.s_cont.80:
+atan_fle.s_cont.80:
 	flw	f1, 8(a0)
 	flw	f2, 0(a0)
 	li	t1, l.70
 	flw	f3, 0(t1)
 	fle.s	t1, f3, f2
-	beq	t1, zero, fle.s_else.81
+	beq	t1, zero, atan_fle.s_else.81
 	li	t1, l.71
 	flw	f0, 0(t1)
 	fle.s	t1, f0, f2
-	beq	t1, zero, fle.s_else.82
+	beq	t1, zero, atan_fle.s_else.82
 	li	t1, l.73
 	flw	f0, 0(t1)
-	li	t1, l.66
+	li	t1, atan_l66
 	flw	f3, 0(t1)
 	fdiv.s	f2, f3, f2
 	fsw	f1, 0(sp)
@@ -773,13 +773,13 @@ fle.s_cont.80:
 	flw	f1, 0(sp)
 	fmul.s	f0, f1, f0
 	j	min_caml_atan.3_end
-fle.s_else.82:
+atan_fle.s_else.82:
 	li	t1, l.72
 	flw	f0, 0(t1)
-	li	t1, l.66
+	li	t1, atan_l66
 	flw	f3, 0(t1)
 	fsub.s	f3, f2, f3
-	li	t1, l.66
+	li	t1, atan_l66
 	flw	f4, 0(t1)
 	fadd.s	f2, f2, f4
 	fdiv.s	f2, f3, f2
@@ -792,7 +792,7 @@ fle.s_else.82:
 	flw	f1, 0(sp)
 	fmul.s	f0, f1, f0
 	j	min_caml_atan.3_end
-fle.s_else.81:
+atan_fle.s_else.81:
 	call	kernel_atan.1
 	j	min_caml_atan.3_end
 min_caml_atan.3_end:
@@ -825,10 +825,10 @@ min_caml_fispos:
 	li	t1, l.119
 	flw	f1, 0(t1)
 	fle.s	t1, f0, f1
-	beq	t1, zero, fle.s_else.9
+	beq	t1, zero, fis_pos_fle.s_else.9
 	li	a0, 0
 	j	fispos.1_end
-fle.s_else.9:
+fis_pos_fle.s_else.9:
 	li	a0, 1
 	j	fispos.1_end
 fispos.1_end:
@@ -843,10 +843,10 @@ min_caml_fisneg:
 	li	t1, l.119
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
-	beq	t1, zero, fle.s_else.9
+	beq	t1, zero, fisneg_fle.s_else.9
 	li	a0, 0
 	j	fisneg.1_end
-fle.s_else.9:
+fisneg_fle.s_else.9:
 	li	a0, 1
 	j	fisneg.1_end
 fisneg.1_end:

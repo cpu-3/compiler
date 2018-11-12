@@ -5,7 +5,7 @@
 (*MINCAML*)   if y >= 400 then () else
 (*NOMINCAML   for x = 0 to 399 do *)
 (*MINCAML*)   let rec xloop x y =
-(*MINCAML*)     if x >= 400 then () else
+(*MINCAML*)     if x >= 400 then print_newline () else
                 let cr = dbl (float_of_int x) /. 400.0 -. 1.5 in
                 let ci = dbl (float_of_int y) /. 400.0 -. 1.0 in
                 let rec iloop i zr zi zr2 zi2 cr ci =
@@ -18,7 +18,7 @@
                   let zi2 = zi *. zi in
                   if zr2 +. zi2 > 2.0 *. 2.0 then print_int 0 else
                   iloop (i - 1) zr zi zr2 zi2 cr ci in (* iloop in *)
-                iloop 10 0.0 0.0 0.0 0.0 cr ci;
+                iloop 1000 0.0 0.0 0.0 0.0 cr ci;
 (*
                 let i = ref 1000 in
                 let zr = ref 0.0 in
