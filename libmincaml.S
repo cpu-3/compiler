@@ -967,11 +967,6 @@ itof2.3:
 	call	itof2.3
 	j	itof2.3_end
 ble_else.94:
-	mv	a1, hp
-	add	hp, hp, 16
-	fsw	f0, 8(a1)
-	sw	a0, 0(a1)
-	mv	a0, a1
 	j	itof2.3_end
 itof2.3_end:
 	lw	ra, 0(sp)
@@ -993,8 +988,6 @@ bge_cont.96:
 	sw	a0, 0(sp)
 	mv	a0, a1
 	call	itof2.3
-	flw	f0, 8(a0)
-	lw	a0, 0(a0)
 	fsw	f0, 4(sp)
 	call	itof_kern.1
 	flw	f1, 4(sp)
@@ -1039,11 +1032,6 @@ ftoi2.10:
 	call	ftoi2.10
 	j	ftoi2.10_end
 fle.s_else.98:
-	mv	a1, hp
-	add	hp, hp, 8
-	sw	a0, 4(a1)
-	fsw	f0, 0(a1)
-	mv	a0, a1
 	j	ftoi2.10_end
 ftoi2.10_end:
 	lw	ra, 0(sp)
@@ -1066,8 +1054,7 @@ fle.s_cont.100:
 	fsw	f0, 0(sp)
 	fmv.s	f0, f1
 	call	ftoi2.10
-	lw	a1, 4(a0)
-	flw	f0, 0(a0)
+	mv a1, a0
 	sw	a1, 4(sp)
 	call	ftoi_kern.8
 	lw	a1, 4(sp)
