@@ -189,6 +189,37 @@ min_caml_float_of_int:
 	j min_caml_itof
 
 
+# floor
+min_caml_floor:
+	add	sp, sp, -8
+	sw	ra, 4(sp)
+	fsw	f0, 0(sp)
+	call min_caml_ftoi
+	call min_caml_itof
+	li	t1, l.123
+	flw	f1, 0(t1)
+	fsub.s	f1, f0, f1
+	flw	f2, 0(sp)
+	fle.s	t1, f2, f1
+	beq	t1, zero, fle.s_else.15
+	call min_caml_ftoi
+	j	floor.1_end
+fle.s_else.15:
+	fle.s	t1, f0, f2
+	beq	t1, zero, fle.s_else.16
+	call min_caml_ftoi
+	j	floor.1_end
+fle.s_else.16:
+	li	t1, l.123
+	flw	f1, 0(t1)
+	fsub.s	f0, f0, f1
+	call min_caml_ftoi
+	j	floor.1_end
+floor.1_end:
+	lw	ra, 4(sp)
+	add	sp, sp, 8
+	ret
+
 # abs_float
 min_caml_abs_float_9:	 # -1.000000
 	.word	-1082130432
@@ -633,7 +664,7 @@ atan_l73:	 # 1.570796
 	.word	1070141403
 atan_l72:	 # 0.785398
 	.word	1061752795
-l.71:	 # 2.437500
+atan_l71:	 # 2.437500
 	.word	1075576832
 atan_l70:	 # 0.437500
 	.word	1054867456
@@ -725,7 +756,7 @@ atan_fle.s_cont.80:
 	flw	f3, 0(t1)
 	fle.s	t1, f3, f2
 	beq	t1, zero, atan_fle.s_else.81
-	li	t1, l.71
+	li	t1, atan_l71
 	flw	f0, 0(t1)
 	fle.s	t1, f0, f2
 	beq	t1, zero, atan_fle.s_else.82
@@ -893,15 +924,21 @@ min_caml_union_itof:
 	sw a0, -4(sp)
 	flw f0, -4(sp)
 	ret
-itof_l76:	 # -0.500000
+itof_l88:	 # 0.100000
+	.word	1036831949
+itof_l87:	 # 3.900000
+	.word	1081711002
+itof_l86:	 # -0.500000
 	.word	-1090519040
-itof_l75:	 # 0.010000
+itof_l85:	 # 0.500000
+	.word	1056964608
+itof_l84:	 # 0.010000
 	.word	1008981770
-itof_l74:	 # -5.100000
+itof_l83:	 # -5.100000
 	.word	-1063046349
-itof_l70:	 # 0.000000
+itof_79:	 # 0.000000
 	.word	0
-itof_l66:	 # 8388608.000000
+itof_l75:	 # 8388608.000000
 	.word	1258291200
 itof_kern.1:
 	add	sp, sp, -4
@@ -909,7 +946,7 @@ itof_kern.1:
 	li	a1, 1258291200
 	add	a0, a0, a1
 	call	min_caml_union_itof
-	li	t1, itof_l66
+	li	t1, itof_l75
 	flw	f1, 0(t1)
 	fsub.s	f0, f0, f1
 	j	itof_kern.1_end
@@ -921,15 +958,15 @@ itof2.3:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
 	li	a1, 8388608
-	bgt	a1, a0, ble_else.82
+	bgt	a1, a0, ble_else.94
 	li	a1, 8388608
 	sub	a0, a0, a1
-	li	t1, itof_l66
+	li	t1, itof_l75
 	flw	f1, 0(t1)
 	fadd.s	f0, f1, f0
 	call	itof2.3
 	j	itof2.3_end
-ble_else.82:
+ble_else.94:
 	mv	a1, hp
 	add	hp, hp, 16
 	fsw	f0, 8(a1)
@@ -941,16 +978,17 @@ itof2.3_end:
 	add	sp, sp, 4
 	ret
 min_caml_itof:
+min_caml_itof.6:
 	add	sp, sp, -12
 	sw	ra, 8(sp)
 	li	t1, 0
-	blt	a0, t1, itof_bge_else.83
+	blt	a0, t1, bge_else.95
 	mv	a1, a0
-	j	itof_bge_cont.84
-itof_bge_else.83:
+	j	bge_cont.96
+bge_else.95:
 	sub	a1, zero, a0
-itof_bge_cont.84:
-	li	t1, itof_l70
+bge_cont.96:
+	li	t1, itof_79
 	flw	f0, 0(t1)
 	sw	a0, 0(sp)
 	mv	a0, a1
@@ -963,9 +1001,9 @@ itof_bge_cont.84:
 	fadd.s	f0, f0, f1
 	lw	a0, 0(sp)
 	li	t1, 0
-	blt	a0, t1, itof_bge_else.85
+	blt	a0, t1, bge_else.97
 	j	min_caml_itof.6_end
-itof_bge_else.85:
+bge_else.97:
 	fneg.s	f0, f0
 	j	min_caml_itof.6_end
 min_caml_itof.6_end:
@@ -975,7 +1013,7 @@ min_caml_itof.6_end:
 ftoi_kern.8:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
-	li	t1, itof_l66
+	li	t1, itof_l75
 	flw	f1, 0(t1)
 	fadd.s	f0, f0, f1
 	call	min_caml_union_ftoi
@@ -989,18 +1027,18 @@ ftoi_kern.8_end:
 ftoi2.10:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
-	li	t1, itof_l66
+	li	t1, itof_l75
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
-	beq	t1, zero, ftoi_fle.s_else.86
-	li	t1, itof_l66
+	beq	t1, zero, fle.s_else.98
+	li	t1, itof_l75
 	flw	f1, 0(t1)
 	fsub.s	f0, f0, f1
 	li	a1, 8388608
 	add	a0, a0, a1
 	call	ftoi2.10
 	j	ftoi2.10_end
-ftoi_fle.s_else.86:
+fle.s_else.98:
 	mv	a1, hp
 	add	hp, hp, 8
 	sw	a0, 4(a1)
@@ -1012,17 +1050,18 @@ ftoi2.10_end:
 	add	sp, sp, 4
 	ret
 min_caml_ftoi:
+min_caml_ftoi.13:
 	add	sp, sp, -12
 	sw	ra, 8(sp)
-	li	t1, itof_l70
+	li	t1, itof_79
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
-	beq	t1, zero, itof_fle.s_else.87
+	beq	t1, zero, fle.s_else.99
 	fmv.s	f1, f0
-	j	itof_fle.s_cont.88
-itof_fle.s_else.87:
+	j	fle.s_cont.100
+fle.s_else.99:
 	fneg.s	f1, f0
-itof_fle.s_cont.88:
+fle.s_cont.100:
 	li	a0, 0
 	fsw	f0, 0(sp)
 	fmv.s	f0, f1
@@ -1033,15 +1072,14 @@ itof_fle.s_cont.88:
 	call	ftoi_kern.8
 	lw	a1, 4(sp)
 	add	a0, a0, a1
-	li	t1, itof_l70
+	li	t1, itof_79
 	flw	f0, 0(t1)
 	flw	f1, 0(sp)
 	fle.s	t1, f0, f1
-	beq	t1, zero, fle.s_else.89
+	beq	t1, zero, fle.s_else.101
 	j	min_caml_ftoi.13_end
-fle.s_else.89:
+fle.s_else.101:
 	sub	a0, zero, a0
-	sub	a0, a0, 1
 	j	min_caml_ftoi.13_end
 min_caml_ftoi.13_end:
 	lw	ra, 8(sp)
