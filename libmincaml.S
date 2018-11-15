@@ -874,10 +874,15 @@ min_caml_sqrt:
 
 	li	t1, fsqrt_24
 	flw	f2, 0(t1)
-	fmul.s	f1, f1, f0
-	fmul.s	f1, f1, f0
-	fsub.s	f1, f2, f1
-	fmul.s	f0, f0, f1
+	fmul.s	f3, f1, f0
+	fmul.s	f3, f3, f0
+	fsub.s	f3, f2, f3
+	fmul.s	f0, f0, f3
+
+	fmul.s	f3, f1, f0
+	fmul.s	f3, f3, f0
+	fsub.s	f3, f2, f3
+	fmul.s	f0, f0, f3
 
 	li	t1, fsqrt_123
 	flw	f2, 0(t1)
