@@ -1043,23 +1043,28 @@ min_caml_ftoi.13_end:
 	lw	ra, 8(sp)
 	add	sp, sp, 12
 	ret
-floor_l17:	 # 0.000000
+floor_l53:	 # 1.000000
+	.word	1065353216
+floor_l52:	 # 0.000000
 	.word	0
 min_caml_floor:
 	add	sp, sp, -8
 	sw	ra, 4(sp)
 	fsw	f0, 0(sp)
 	call	min_caml_int_of_float
-	li	t1, floor_l17
-	flw	f0, 0(t1)
-	flw	f1, 0(sp)
-	fle.s	t1, f0, f1
-	beq	t1, zero, floor_fle.s_else.24
-	j	min_caml_floor.1_end
-floor_fle.s_else.24:
-	sub	a0, a0, 1
-	j	min_caml_floor.1_end
-min_caml_floor.1_end:
+	call	min_caml_float_of_int
+	li	t1, floor_l52
+	flw	f1, 0(t1)
+	flw	f2, 0(sp)
+	fle.s	t1, f1, f2
+	beq	t1, zero, floor_fle.s_else.65
+	j	min_caml_floord.1_end
+floor_fle.s_else.65:
+	li	t1, floor_l53
+	flw	f1, 0(t1)
+	fsub.s	f0, f0, f1
+	j	min_caml_floord.1_end
+min_caml_floord.1_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
 	ret

@@ -106,7 +106,7 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
   | KNormal.ExtArray(x) -> ExtArray(Id.L(x))
   | KNormal.ExtTuple(x) -> ExtTuple(Id.L(x))
   | KNormal.ExtFunApp(x, ys) ->
-      if x = "!sqrt" then FSqrt(List.hd ys) else if x = "fneg" then FNeg(List.hd ys)
+      if x = "sqrt" then FSqrt(List.hd ys) else if x = "fneg" then FNeg(List.hd ys)
         else AppDir(Id.L("min_caml_" ^ x), ys)
 
 let f e =
