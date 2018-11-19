@@ -10,7 +10,6 @@ min_caml_input_char:
   lb a0, 0(s11)
   ret
 
-
 # read_float
 min_caml_read_float:
 	add	sp, sp, -12
@@ -87,7 +86,6 @@ ble_else.44:
 ble_else.45:
 	add	a2, a3, 0
 	call	div10.1
-	j	div10.1_end
 div10.1_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
@@ -97,7 +95,6 @@ print_int2.5:
 	sw	ra, 8(sp)
 	bne	a0, zero, beq_else.46
 	bne	a1, zero, beq_else.47
-	nop
 	j	print_int2.5_end
 beq_else.47:
 	li	a0, 48
@@ -119,7 +116,6 @@ beq_else.46:
 	sub	a0, a1, a0
 	add	a0, a0, 48
 	call	min_caml_print_char
-	j	print_int2.5_end
 print_int2.5_end:
 	lw	ra, 8(sp)
 	add	sp, sp, 12
@@ -140,7 +136,6 @@ bge_else.49:
 	sub	a0, zero, a0
 	li	a1, 1
 	call	print_int2.5
-	j	min_caml_print_int_end
 min_caml_print_int_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
@@ -172,26 +167,12 @@ create_float_array_cont:
 	add hp, hp, 4
 	j create_float_array_loop
 
-# truncate (float -> int)
-min_caml_truncate:
-	j min_caml_ftoi
-
-# int_of_float (float -> int)
-min_caml_int_of_float:
-	j min_caml_truncate
-
-
-# float_of_int (int -> float)
-min_caml_float_of_int:
-	j min_caml_itof
-
-
-
 # abs_float
 min_caml_abs_float_9:	 # -1.000000
 	.word	-1082130432
 min_caml_abs_float_8:	 # 0.000000
 	.word	0
+min_caml_fabs:
 min_caml_abs_float:
 	add	sp, sp, -4
 	sw	ra, 0(sp)
@@ -204,14 +185,10 @@ min_caml_abs_fle.s_else.12:
 	li	t1, min_caml_abs_float_9
 	flw	f1, 0(t1)
 	fmul.s	f0, f1, f0
-	j	min_caml_abs_float.1_end
 min_caml_abs_float.1_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
-
-min_caml_fabs:
-	j min_caml_abs_float
 
 min_caml_fless:
 	flt.s a0, f0, f1
@@ -762,7 +739,6 @@ atan_fle.s_else.82:
 	j	min_caml_atan.3_end
 atan_fle.s_else.81:
 	call	kernel_atan.1
-	j	min_caml_atan.3_end
 min_caml_atan.3_end:
 	lw	ra, 12(sp)
 	add	sp, sp, 16
@@ -935,6 +911,8 @@ itof2.3_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
+# float_of_int (int -> float)
+min_caml_float_of_int:
 min_caml_itof.6:
 min_caml_itof:
 	add	sp, sp, -12
@@ -1000,6 +978,10 @@ ftoi2.10_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
+# int_of_float (float -> int)
+min_caml_int_of_float:
+# truncate (float -> int)
+min_caml_truncate:
 min_caml_ftoi:
 min_caml_ftoi.13:
 	add	sp, sp, -12
@@ -1040,7 +1022,6 @@ fle.s_else.106:
 	j	min_caml_ftoi.13_end
 fle.s_else.105:
 	li	a0, 0
-	j	min_caml_ftoi.13_end
 min_caml_ftoi.13_end:
 	lw	ra, 8(sp)
 	add	sp, sp, 12
@@ -1065,7 +1046,6 @@ floor_fle.s_else.65:
 	li	t1, floor_l53
 	flw	f1, 0(t1)
 	fsub.s	f0, f0, f1
-	j	min_caml_floord.1_end
 min_caml_floord.1_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
