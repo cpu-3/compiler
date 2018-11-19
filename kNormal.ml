@@ -244,7 +244,7 @@ let rec print_t nml =
                         List.iter (fun s' ->
                             print_string (", " ^ s')) ss;
                         print_string ")")
-    | LetTuple (s::ss, s1, t2) -> (print_string ("LET (" ^ (fst s));
+    | LetTuple (s::ss, s1, t2) -> (print_string ("LETTuple (" ^ (fst s));
                                    List.iter (fun (s', _) ->
                                        print_string (", " ^ s')) ss;
                                    print_string (") = " ^ s1 ^ " IN ");

@@ -24,6 +24,7 @@ let findt x env = (match M.find x env with
                        let size = fold_right (+) l 0 in
                        let indexlist = fold_right (fun i (a::r) -> (a-i)::a::r) l [size] in
                        map (fun i -> nth ys i) (rev (tl (rev indexlist)))
+                   | Tuple(ys, _) -> ys
                    | _ -> raise Not_found)
 
 let rec g env = function (* 定数畳み込みルーチン本体 (caml2html: constfold_g) *)
