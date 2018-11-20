@@ -114,22 +114,22 @@ and g' buf = function (* 各命令のアセンブリ生成 (caml2html: emit_gpri
   (* 末尾だったら計算結果を第一レジスタにセットしてリターン (caml2html: emit_tailret) *)
   | Tail, (Nop | Sw _ | Stfd _ | Comment _ | Save _ as exp) ->
       g' buf (NonTail(Id.gentmp Type.Unit), exp);
-      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tret\n"
   | Tail, (Li _ | SetL _ | Mv _ | Neg _ | Add _ | Sub _ | Mul _ | Div _ | Sll _ | Lw _ as exp) ->
       g' buf (NonTail(regs.(0)), exp);
-      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tret\n"
   | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FSqrt _ | Lfd _ as exp) ->
       g' buf (NonTail(fregs.(0)), exp);
-      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tret\n"
   | Tail, (Restore(x) as exp) ->
       (match locate x with
       | [i] -> g' buf (NonTail(regs.(0)), exp)
       | [i; j] when i + 1 = j -> g' buf (NonTail(fregs.(0)), exp)
       | _ -> assert false);
-      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tret\n"
   | Tail, IfEq(x, V(y), e1, e2) ->
       g'_tail_if buf e1 e2 "beq" "bne" (reg x) (reg y)
@@ -173,11 +173,11 @@ and g' buf = function (* 各命令のアセンブリ生成 (caml2html: emit_gpri
   | Tail, CallCls(x, ys, zs) -> (* 末尾呼び出し (caml2html: emit_tailcall) *)
       g'_args buf [(x, reg_cl)] ys zs;
       Printf.bprintf buf "\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg reg_cl);
-      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tjr\t%s\n" (reg reg_tmp);
   | Tail, CallDir(Id.L(x), ys, zs) -> (* 末尾呼び出し *)
       g'_args buf [] ys zs;
-      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tj\t%s\n" x;
   | NonTail(a), CallCls(x, ys, zs) ->
       g'_args buf [(x, reg_cl)] ys zs;
@@ -254,9 +254,13 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   g buffer (Tail, e);
   let n = stacksize () in
   let buffer' = Buffer.create 128 in
-  Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
-  Buffer.add_substitute buffer' (fun "n" -> string_of_int n) (Buffer.contents buffer);
-  Buffer.output_buffer oc buffer'
+  if n = 0 then
+    (Buffer.add_substitute buffer' (fun "addsp" -> "") (Buffer.contents buffer);
+     Buffer.output_buffer oc buffer')
+  else
+    (Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
+     Buffer.add_substitute buffer' (fun "addsp" -> Printf.sprintf "\tadd\tsp, sp, %d\n" n) (Buffer.contents buffer);
+     Buffer.output_buffer oc buffer')
 
 let f oc (Prog(data, fundefs, e)) =
   Format.eprintf "generating assembly...@.";

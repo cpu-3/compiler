@@ -104,6 +104,20 @@ let rec addrestore x t =
   | Ans(_) -> Let((reg_link, Type.Unit), Restore(x), t)
   | Let(xt, exp, e) -> Let(xt, exp, addrestore x e)
 
+type dest = Tail | NonTail
+let rec hascall = function
+  | dest, Ans(exp) -> hascall' (dest, exp)
+  | dest, Let(_, exp, e) -> hascall' (NonTail, exp) || hascall (dest, e)
+and hascall' = function
+  | NonTail, CallCls(_, _, _) -> true
+  | NonTail, CallDir(_, _, _) -> true
+  | dest, IfEq(_, _, e1, e2) -> hascall (dest, e1) || hascall (dest, e2)
+  | dest, IfLE(_, _, e1, e2) -> hascall (dest, e1) || hascall (dest, e2)
+  | dest, IfGE(_, _, e1, e2) -> hascall (dest, e1) || hascall (dest, e2)
+  | dest, IfFEq(_, _, e1, e2) -> hascall (dest, e1) || hascall (dest, e2)
+  | dest, IfFLE(_, _, e1, e2) -> hascall (dest, e1) || hascall (dest, e2)
+  | _, _ -> false
+
 let rec g dest cont regenv = function (* 命令列のレジスタ割り当て (caml2html: regalloc_g) *)
   | Ans(exp) -> g'_and_restore dest cont regenv exp
   | Let((x, t) as xt, exp, e) ->
@@ -223,8 +237,10 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数�
     | Type.Float -> fregs.(0)
     | _ -> regs.(0) in
   let (e', regenv') = g (a, t) (Ans(Mv(a))) regenv e in
-  let xt = Id.gentmp t in
-   { name = Id.L(x); args = arg_regs; fargs = farg_regs; body = seq(Save(reg_link, xt), addrestore xt e'); ret = t }
+  let e'' = if hascall (Tail, e')
+                 then let xt = Id.gentmp t in seq(Save(reg_link, xt), addrestore xt e')
+                 else e' in
+  { name = Id.L(x); args = arg_regs; fargs = farg_regs; body = e''; ret = t }
 
 let f (Prog(data, fundefs, e)) = (* プログラム全体のレジスタ割り当て (caml2html: regalloc_f) *)
   Format.eprintf "register allocation: may take some time (up to a few minutes, depending on the size of functions)@.";
