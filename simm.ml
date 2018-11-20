@@ -1,8 +1,8 @@
 open Asm
 
-let rec g env = function (* 命令列の16bit即値最適化 (caml2html: simm13_g) *)
+let rec g env = function (* 命令列の12bit即値最適化 (caml2html: simm13_g) *)
   | Ans(exp) -> Ans(g' env exp)
-  | Let((x, t), Li(i), e) when -32768 <= i && i < 32768 ->
+  | Let((x, t), Li(i), e) when -2048 <= i && i < 2048 ->
       (* Format.eprintf "found simm16 %s = %d@." x i; *)
       let e' = g (M.add x i env) e in
       if List.mem x (fv e') then Let((x, t), Li(i), e') else
