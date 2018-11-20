@@ -599,8 +599,6 @@ atan_l56:	 # 0.200000
 atan_l55:	 # 0.333333
 	.word	1051372202
 kernel_atan.1:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	fmul.s	f1, f0, f0
 	fmul.s	f2, f1, f0
 	fmul.s	f3, f2, f1
@@ -632,10 +630,6 @@ kernel_atan.1:
 	flw	f2, 0(t1)
 	fmul.s	f1, f2, f1
 	fadd.s	f0, f0, f1
-	j	kernel_atan.1_end
-kernel_atan.1_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
 	ret
 min_caml_atan:
 	add	sp, sp, -16
@@ -685,7 +679,9 @@ atan_fle.s_cont.80:
 	fsub.s	f0, f1, f0
 	flw	f1, 0(sp)
 	fmul.s	f0, f1, f0
-	j	min_caml_atan.3_end
+	lw	ra, 12(sp)
+	add	sp, sp, 16
+	ret
 atan_fle.s_else.82:
 	li	t1, atan_l72
 	flw	f0, 0(t1)
@@ -704,14 +700,12 @@ atan_fle.s_else.82:
 	fadd.s	f0, f1, f0
 	flw	f1, 0(sp)
 	fmul.s	f0, f1, f0
-	j	min_caml_atan.3_end
-atan_fle.s_else.81:
-	call	kernel_atan.1
-	j	min_caml_atan.3_end
-min_caml_atan.3_end:
 	lw	ra, 12(sp)
 	add	sp, sp, 16
 	ret
+atan_fle.s_else.81:
+	add	sp, sp, 16
+	j	kernel_atan.1
 
 # fiszero
 min_caml_fiszero:
