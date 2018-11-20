@@ -193,22 +193,16 @@ min_caml_abs_float_9:	 # -1.000000
 min_caml_abs_float_8:	 # 0.000000
 	.word	0
 min_caml_abs_float:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, min_caml_abs_float_8
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
 	beq	t1, zero, min_caml_abs_fle.s_else.12
-	j	min_caml_abs_float.1_end
+    ret
 min_caml_abs_fle.s_else.12:
 	li	t1, min_caml_abs_float_9
 	flw	f1, 0(t1)
 	fmul.s	f0, f1, f0
-	j	min_caml_abs_float.1_end
-min_caml_abs_float.1_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 
 min_caml_fabs:
 	j min_caml_abs_float
@@ -247,61 +241,39 @@ l.120:	 # 2.000000
 l.119:	 # 0.000000
 	.word	0
 flag.2:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, l.119
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
 	beq	t1, zero, fle.s_else.199
 	li	a0, 0
-	j	flag.2_end
+    ret
 fle.s_else.199:
 	li	a0, 1
-	j	flag.2_end
-flag.2_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 inner.103:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	fle.s	t1, f1, f0
 	beq	t1, zero, fle.s_else.200
 	li	t1, l.120
 	flw	f2, 0(t1)
 	fmul.s	f1, f1, f2
-	call	inner.103
-	j	inner.103_end
+	j	inner.103
 fle.s_else.200:
 	fmv.s	f0, f1
-	j	inner.103_end
-inner.103_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 inner.107:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, l.121
 	flw	f2, 0(t1)
 	fle.s	t1, f2, f0
 	beq	t1, zero, fle.s_else.201
 	fle.s	t1, f1, f0
-	beq	t1, zero, fle.s_else.202
+	beq	t1, zero, fle.s_cont.203
 	fsub.s	f0, f0, f1
-	j	fle.s_cont.203
-fle.s_else.202:
 fle.s_cont.203:
 	li	t1, l.120
 	flw	f2, 0(t1)
 	fdiv.s	f1, f1, f2
-	call	inner.107
-	j	inner.107_end
+	j	inner.107
 fle.s_else.201:
-	j	inner.107_end
-inner.107_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
 	ret
 reduction2pi.4:
 	add	sp, sp, -8
@@ -312,41 +284,26 @@ reduction2pi.4:
 	call	inner.103
 	fmv.s	f1, f0
 	flw	f0, 0(sp)
-	call	inner.107
-	j	reduction2pi.4_end
-reduction2pi.4_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
-	ret
+	j	inner.107
 reverse.6:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, 0
 	bne	a0, t1, beq_else.204
 	li	a0, 1
-	j	reverse.6_end
+    ret
 beq_else.204:
 	li	a0, 0
-	j	reverse.6_end
-reverse.6_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 add_sign.8:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, 0
 	bne	a0, t1, beq_else.205
-	j	add_sign.8_end
+    ret
 beq_else.205:
 	li	t1, l.122
 	flw	f1, 0(t1)
 	fmul.s	f0, f1, f0
-	j	add_sign.8_end
-add_sign.8_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 pow.11:
 	add	sp, sp, -8
 	sw	ra, 4(sp)
@@ -401,10 +358,8 @@ kernel_sin.14:
 	flw	f1, 20(sp)
 	fmul.s	f0, f1, f0
 	flw	f1, 16(sp)
-	fsub.s	f0, f1, f0
-	j	kernel_sin.14_end
-kernel_sin.14_end:
 	lw	ra, 24(sp)
+	fsub.s	f0, f1, f0
 	add	sp, sp, 28
 	ret
 kernel_cos.16:
@@ -446,10 +401,8 @@ kernel_cos.16:
 	flw	f1, 24(sp)
 	fmul.s	f0, f1, f0
 	flw	f1, 20(sp)
-	fsub.s	f0, f1, f0
-	j	kernel_cos.16_end
-kernel_cos.16_end:
 	lw	ra, 28(sp)
+	fsub.s	f0, f1, f0
 	add	sp, sp, 32
 	ret
 fsin.18:
@@ -489,11 +442,9 @@ fle.s_cont.208:
 	li	t1, l.136
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
-	beq	t1, zero, fle.s_else.209
+	beq	t1, zero, fle.s_cont.210
 	flw	f1, 0(sp)
 	fsub.s	f0, f1, f0
-	j	fle.s_cont.210
-fle.s_else.209:
 fle.s_cont.210:
 	li	t1, l.137
 	flw	f1, 0(t1)
@@ -509,12 +460,9 @@ fle.s_else.211:
 	call	kernel_cos.16
 fle.s_cont.212:
 	lw	a0, 16(sp)
-	call	add_sign.8
-	j	fsin.18_end
-fsin.18_end:
 	lw	ra, 20(sp)
 	add	sp, sp, 24
-	ret
+	j	add_sign.8
 fcos.20:
 	add	sp, sp, -24
 	sw	ra, 20(sp)
@@ -585,12 +533,9 @@ fle.s_else.217:
 	call	kernel_sin.14
 fle.s_cont.218:
 	lw	a0, 16(sp)
-	call	add_sign.8
-	j	fcos.20_end
-fcos.20_end:
 	lw	ra, 20(sp)
 	add	sp, sp, 24
-	ret
+	j	add_sign.8
 min_caml_sin:
 	add sp, sp, -8
 	sw	ra, 0(sp)
@@ -770,81 +715,51 @@ min_caml_atan.3_end:
 
 # fiszero
 min_caml_fiszero:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, l.119
 	flw	f1, 0(t1)
 	feq.s	t1, f0, f1
 	beq	t1, zero, feq.s_else.9
 	li	a0, 1
-	j	min_caml_fiszero._end
+    ret
 feq.s_else.9:
 	li	a0, 0
-	j	min_caml_fiszero._end
-min_caml_fiszero._end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
 	ret
 
 # fispos
 min_caml_fispos:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, l.119
 	flw	f1, 0(t1)
 	fle.s	t1, f0, f1
 	beq	t1, zero, fis_pos_fle.s_else.9
 	li	a0, 0
-	j	fispos.1_end
+    ret
 fis_pos_fle.s_else.9:
 	li	a0, 1
-	j	fispos.1_end
-fispos.1_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 
 # fisneg
 min_caml_fisneg:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, l.119
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
 	beq	t1, zero, fisneg_fle.s_else.9
 	li	a0, 0
-	j	fisneg.1_end
+    ret
 fisneg_fle.s_else.9:
 	li	a0, 1
-	j	fisneg.1_end
-fisneg.1_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 
 # fsqr
 min_caml_fsqr:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	fmul.s	f0, f0, f0
-	j	fsqr.1_end
-fsqr.1_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 
 # fhalf
 min_caml_fhalf:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, l.127
 	flw	f1, 0(t1)
 	fmul.s	f0, f0, f1
-	j	fhalf.1_end
-fhalf.1_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
-	ret
+    ret
 
 fsqrt_24:	 # 1.500000
 	.word	1069547520
@@ -853,8 +768,7 @@ fsqrt_23:	 # 0.500000
 fsqrt_123:	 # 1.000000
 	.word	1065353216
 min_caml_sqrt:
-	add	sp, sp, -8
-	sw	ra, 4(sp)
+	add	sp, sp, -4
 	li	t1, fsqrt_23
 	flw	f1, 0(t1)
 	fmul.s	f1, f0, f1
@@ -885,8 +799,7 @@ min_caml_sqrt:
 	flw	f2, 0(t1)
 	fdiv.s f0, f2, f0
 
-	lw	ra, 4(sp)
-	add	sp, sp, 8
+	add	sp, sp, 4
 	ret
 min_caml_union_ftoi:
 	fsw f0, -4(sp)
@@ -911,14 +824,10 @@ itof_kern.1:
 	li	t1, itof_l78
 	flw	f1, 0(t1)
 	fsub.s	f0, f0, f1
-	j	itof_kern.1_end
-itof_kern.1_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
 itof2.3:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	a1, 8388608
 	bgt	a1, a0, ble_else.98
 	li	a1, 8388608
@@ -926,16 +835,10 @@ itof2.3:
 	li	t1, itof_l78
 	flw	f1, 0(t1)
 	fadd.s	f0, f1, f0
-	call	itof2.3
-	j	itof2.3_end
+	j	itof2.3
 ble_else.98:
 	mv	a1, hp
-	j	itof2.3_end
-itof2.3_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
 	ret
-min_caml_itof.6:
 min_caml_itof:
 	add	sp, sp, -12
 	sw	ra, 8(sp)
@@ -958,11 +861,11 @@ bge_cont.100:
 	lw	a0, 0(sp)
 	li	t1, 0
 	blt	a0, t1, bge_else.101
-	j	min_caml_itof.6_end
+	lw	ra, 8(sp)
+	add	sp, sp, 12
+	ret
 bge_else.101:
 	fneg.s	f0, f0
-	j	min_caml_itof.6_end
-min_caml_itof.6_end:
 	lw	ra, 8(sp)
 	add	sp, sp, 12
 	ret
@@ -975,14 +878,10 @@ ftoi_kern.8:
 	call	min_caml_union_ftoi
 	li	a1, 1258291200
 	sub	a0, a0, a1
-	j	ftoi_kern.8_end
-ftoi_kern.8_end:
 	lw	ra, 0(sp)
 	add	sp, sp, 4
 	ret
 ftoi2.10:
-	add	sp, sp, -4
-	sw	ra, 0(sp)
 	li	t1, itof_l78
 	flw	f1, 0(t1)
 	fle.s	t1, f1, f0
@@ -992,16 +891,10 @@ ftoi2.10:
 	fsub.s	f0, f0, f1
 	li	a1, 8388608
 	add	a0, a0, a1
-	call	ftoi2.10
-	j	ftoi2.10_end
+	j	ftoi2.10
 fle.s_else.102:
-	j	ftoi2.10_end
-ftoi2.10_end:
-	lw	ra, 0(sp)
-	add	sp, sp, 4
 	ret
 min_caml_ftoi:
-min_caml_ftoi.13:
 	add	sp, sp, -12
 	sw	ra, 8(sp)
 	li	t1, itof_l82
@@ -1034,14 +927,16 @@ fle.s_cont.104:
 	flw	f1, 0(sp)
 	fle.s	t1, f0, f1
 	beq	t1, zero, fle.s_else.106
-	j	min_caml_ftoi.13_end
+	lw	ra, 8(sp)
+	add	sp, sp, 12
+	ret
 fle.s_else.106:
 	sub	a0, zero, a0
-	j	min_caml_ftoi.13_end
+	lw	ra, 8(sp)
+	add	sp, sp, 12
+	ret
 fle.s_else.105:
 	li	a0, 0
-	j	min_caml_ftoi.13_end
-min_caml_ftoi.13_end:
 	lw	ra, 8(sp)
 	add	sp, sp, 12
 	ret
@@ -1060,13 +955,13 @@ min_caml_floor:
 	flw	f2, 0(sp)
 	fle.s	t1, f1, f2
 	beq	t1, zero, floor_fle.s_else.65
-	j	min_caml_floord.1_end
+	lw	ra, 4(sp)
+	add	sp, sp, 8
+	ret
 floor_fle.s_else.65:
 	li	t1, floor_l53
 	flw	f1, 0(t1)
 	fsub.s	f0, f0, f1
-	j	min_caml_floord.1_end
-min_caml_floord.1_end:
 	lw	ra, 4(sp)
 	add	sp, sp, 8
 	ret
