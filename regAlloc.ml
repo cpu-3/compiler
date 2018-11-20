@@ -94,6 +94,16 @@ let find' x' regenv =
   | V(x) -> V(find x Type.Int regenv)
   | c -> c
 
+let rec addrestore x t =
+  match t with
+  | Ans(IfEq(a, b, e1, e2)) -> Ans(IfEq(a, b, addrestore x e1, addrestore x e2))
+  | Ans(IfLE(a, b, e1, e2)) -> Ans(IfLE(a, b, addrestore x e1, addrestore x e2))
+  | Ans(IfGE(a, b, e1, e2)) -> Ans(IfGE(a, b, addrestore x e1, addrestore x e2))
+  | Ans(IfFEq(a, b, e1, e2)) -> Ans(IfFEq(a, b, addrestore x e1, addrestore x e2))
+  | Ans(IfFLE(a, b, e1, e2)) -> Ans(IfFLE(a, b, addrestore x e1, addrestore x e2))
+  | Ans(_) -> Let((reg_link, Type.Unit), Restore(x), t)
+  | Let(xt, exp, e) -> Let(xt, exp, addrestore x e)
+
 let rec g dest cont regenv = function (* 命令列のレジスタ割り当て (caml2html: regalloc_g) *)
   | Ans(exp) -> g'_and_restore dest cont regenv exp
   | Let((x, t) as xt, exp, e) ->
@@ -213,7 +223,8 @@ let h { name = Id.L(x); args = ys; fargs = zs; body = e; ret = t } = (* 関数�
     | Type.Float -> fregs.(0)
     | _ -> regs.(0) in
   let (e', regenv') = g (a, t) (Ans(Mv(a))) regenv e in
-  { name = Id.L(x); args = arg_regs; fargs = farg_regs; body = e'; ret = t }
+  let xt = Id.gentmp t in
+   { name = Id.L(x); args = arg_regs; fargs = farg_regs; body = seq(Save(reg_link, xt), addrestore xt e'); ret = t }
 
 let f (Prog(data, fundefs, e)) = (* プログラム全体のレジスタ割り当て (caml2html: regalloc_f) *)
   Format.eprintf "register allocation: may take some time (up to a few minutes, depending on the size of functions)@.";

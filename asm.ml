@@ -131,22 +131,32 @@ and print_exp = function
   (* virtual instructions *)
   | IfEq(s, i, t1, t2) -> (print_string ("ifeq " ^ s ^ " ");
                            print_id_or_imm i;
+                           print_string (" then ");
                            print_t t1;
-                           print_t t2)
+                           print_string (" else ");
+                           print_t t2; print_string " ")
   | IfLE(s, i, t1, t2) -> (print_string ("ifle " ^ s ^ " ");
                            print_id_or_imm i;
+                           print_string (" then ");
                            print_t t1;
-                           print_t t2)
+                           print_string (" else ");
+                           print_t t2; print_string " ")
   | IfGE(s, i, t1, t2) -> (print_string ("ifge " ^ s ^ " ");
                            print_id_or_imm i;
+                           print_string (" then ");
                            print_t t1;
-                           print_t t2)
+                           print_string (" else ");
+                           print_t t2; print_string " ")
   | IfFEq(s1, s2, t1, t2) -> (print_string ("ifeq " ^ s1 ^ " " ^ s2 ^ " ");
+                           print_string (" then ");
                            print_t t1;
-                           print_t t2)
+                           print_string (" else ");
+                           print_t t2; print_string " ")
   | IfFLE(s1, s2, t1, t2) -> (print_string ("ifeq " ^ s1 ^ " " ^ s2 ^ " ");
+                           print_string (" then ");
                            print_t t1;
-                           print_t t2)
+                           print_string (" else ");
+                           print_t t2; print_string " ")
   (* closure address, integer arguments, and float arguments *)
   | CallCls(s, ints, floats) ->
       (print_string ("callcls " ^ s ^ " ints: ");
@@ -171,9 +181,9 @@ let print_prog (Prog(fls, topfs, e)) =
   print_string "\nfundef list =\n";
   List.iter (fun fd ->
     let Id.L(n) = fd.name in
-    print_string ("name: " ^ n ^ " , args: (");
+    print_string ("\tname: " ^ n ^ "\n\targs: (");
     List.iter(fun x -> print_string(x ^ ",")) fd.args;
-    print_string (") , body: ");
+    print_string (")\n\tbody: ");
     print_t(fd.body);
     print_string ("\n");) topfs;
   print_string "\n";

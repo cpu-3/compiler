@@ -17,7 +17,7 @@ let locate x =
     | y :: zs -> List.map succ (loc zs) in
   loc !stackmap
 let offset x = 4 * List.hd (locate x)
-let stacksize () = (List.length !stackmap + 1) * 4
+let stacksize () = (List.length !stackmap) * 4
 
 let reg r =
   if is_reg r
@@ -51,14 +51,14 @@ let rec range n m =
                   else []
 
 type dest = Tail | NonTail of Id.t (* 末尾かどうかを表すデータ型 (caml2html: emit_dest) *)
-let rec g buf el = function (* 命令列のアセンブリ生成 (caml2html: emit_g) *)
-  | dest, Ans(exp) -> g' buf el (dest, exp)
+let rec g buf = function (* 命令列のアセンブリ生成 (caml2html: emit_g) *)
+  | dest, Ans(exp) -> g' buf (dest, exp)
   | dest, Let((x, t), exp, e) ->
-      g' buf el (NonTail(x), exp);
-      g buf el (dest, e)
-and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
+      g' buf (NonTail(x), exp);
+      g buf (dest, e)
+and g' buf = function (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
-  | NonTail(_), Nop -> Printf.bprintf buf "\tnop\n"
+  | NonTail(_), Nop -> ()
   | NonTail(x), Li(i) -> Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
   | NonTail(x), FLi(Id.L(l)) ->
       Printf.bprintf buf "\tli\t%s, %s\n" (reg reg_tmp) l;
@@ -98,7 +98,7 @@ and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_g
   | NonTail(_), Stfd(x, y, C(z)) -> Printf.bprintf buf "\tfsw\t%s, %d(%s)\n" (reg x) z (reg y)
   | NonTail(_), Comment(s) -> Printf.bprintf buf "#\t%s\n" s
   (* 退避の仮想命令の実装 (caml2html: emit_save) *)
-  | NonTail(_), Save(x, y) when List.mem x allregs && not (S.mem y !stackset) ->
+  | NonTail(_), Save(x, y) when List.mem x (reg_link::allregs) && not (S.mem y !stackset) ->
       save y;
       Printf.bprintf buf "\tsw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
   | NonTail(_), Save(x, y) when List.mem x allfregs && not (S.mem y !stackset) ->
@@ -106,75 +106,79 @@ and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_g
       Printf.bprintf buf "\tfsw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
   | NonTail(_), Save(x, y) -> assert (S.mem y !stackset); ()
   (* 復帰の仮想命令の実装 (caml2html: emit_restore) *)
-  | NonTail(x), Restore(y) when List.mem x allregs ->
+  | NonTail(x), Restore(y) when List.mem x (reg_link::allregs) ->
       Printf.bprintf buf "\tlw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
   | NonTail(x), Restore(y) ->
       assert (List.mem x allfregs);
       Printf.bprintf buf "\tflw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
   (* 末尾だったら計算結果を第一レジスタにセットしてリターン (caml2html: emit_tailret) *)
   | Tail, (Nop | Sw _ | Stfd _ | Comment _ | Save _ as exp) ->
-      g' buf el (NonTail(Id.gentmp Type.Unit), exp);
-      Printf.bprintf buf "\tj\t%s\n" el
+      g' buf (NonTail(Id.gentmp Type.Unit), exp);
+      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "\tret\n"
   | Tail, (Li _ | SetL _ | Mv _ | Neg _ | Add _ | Sub _ | Mul _ | Div _ | Sll _ | Lw _ as exp) ->
-      g' buf el (NonTail(regs.(0)), exp);
-      Printf.bprintf buf "\tj\t%s\n" el
+      g' buf (NonTail(regs.(0)), exp);
+      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "\tret\n"
   | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FSqrt _ | Lfd _ as exp) ->
-      g' buf el (NonTail(fregs.(0)), exp);
-      Printf.bprintf buf "\tj\t%s\n" el
+      g' buf (NonTail(fregs.(0)), exp);
+      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "\tret\n"
   | Tail, (Restore(x) as exp) ->
       (match locate x with
-      | [i] -> g' buf el (NonTail(regs.(0)), exp)
-      | [i; j] when i + 1 = j -> g' buf el (NonTail(fregs.(0)), exp)
+      | [i] -> g' buf (NonTail(regs.(0)), exp)
+      | [i; j] when i + 1 = j -> g' buf (NonTail(fregs.(0)), exp)
       | _ -> assert false);
-      Printf.bprintf buf "\tj\t%s\n" el;
+      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "\tret\n"
   | Tail, IfEq(x, V(y), e1, e2) ->
-      g'_tail_if buf el e1 e2 "beq" "bne" (reg x) (reg y)
+      g'_tail_if buf e1 e2 "beq" "bne" (reg x) (reg y)
   | Tail, IfEq(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_tail_if buf el e1 e2 "beq" "bne" (reg x) (reg reg_tmp)
+      g'_tail_if buf e1 e2 "beq" "bne" (reg x) (reg reg_tmp)
   | Tail, IfLE(x, V(y), e1, e2) ->
-      g'_tail_if buf el e1 e2 "ble" "bgt" (reg x) (reg y)
+      g'_tail_if buf e1 e2 "ble" "bgt" (reg x) (reg y)
   | Tail, IfLE(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_tail_if buf el e1 e2 "ble" "bgt" (reg x) (reg reg_tmp)
+      g'_tail_if buf e1 e2 "ble" "bgt" (reg x) (reg reg_tmp)
   | Tail, IfGE(x, V(y), e1, e2) ->
-      g'_tail_if buf el e1 e2 "bge" "blt" (reg x) (reg y)
+      g'_tail_if buf e1 e2 "bge" "blt" (reg x) (reg y)
   | Tail, IfGE(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_tail_if buf el e1 e2 "bge" "blt" (reg x) (reg reg_tmp)
+      g'_tail_if buf e1 e2 "bge" "blt" (reg x) (reg reg_tmp)
   | Tail, IfFEq(x, y, e1, e2) ->
-      g'_tail_if buf el e1 e2 "fne" "feq.s" (reg x) (reg y)
+      g'_tail_if buf e1 e2 "fne" "feq.s" (reg x) (reg y)
   | Tail, IfFLE(x, y, e1, e2) ->
-      g'_tail_if buf el e1 e2 "fgt" "fle.s" (reg x) (reg y)
+      g'_tail_if buf e1 e2 "fgt" "fle.s" (reg x) (reg y)
   | NonTail(z), IfEq(x, V(y), e1, e2) ->
-      g'_non_tail_if buf el (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg y)
   | NonTail(z), IfEq(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_non_tail_if buf el (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg reg_tmp)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg reg_tmp)
   | NonTail(z), IfLE(x, V(y), e1, e2) ->
-      g'_non_tail_if buf el (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg y)
   | NonTail(z), IfLE(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_non_tail_if buf el (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg reg_tmp)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg reg_tmp)
   | NonTail(z), IfGE(x, V(y), e1, e2) ->
-      g'_non_tail_if buf el (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg y)
   | NonTail(z), IfGE(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_non_tail_if buf el (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg reg_tmp)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg reg_tmp)
   | NonTail(z), IfFEq(x, y, e1, e2) ->
-      g'_non_tail_if buf el (NonTail(z)) e1 e2 "fne" "feq.s" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "fne" "feq.s" (reg x) (reg y)
   | NonTail(z), IfFLE(x, y, e1, e2) ->
-      g'_non_tail_if buf el (NonTail(z)) e1 e2 "fgt" "fle.s" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "fgt" "fle.s" (reg x) (reg y)
   (* 関数呼び出しの仮想命令の実装 (caml2html: emit_call) *)
   | Tail, CallCls(x, ys, zs) -> (* 末尾呼び出し (caml2html: emit_tailcall) *)
       g'_args buf [(x, reg_cl)] ys zs;
       Printf.bprintf buf "\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg reg_cl);
-      Printf.bprintf buf "\tjrl\t%s\n" (reg reg_tmp);
-      Printf.bprintf buf "\tj\t%s\n" el;
+      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "\tjr\t%s\n" (reg reg_tmp);
   | Tail, CallDir(Id.L(x), ys, zs) -> (* 末尾呼び出し *)
       g'_args buf [] ys zs;
-      Printf.bprintf buf "\tcall\t%s\n" x;
-      Printf.bprintf buf "\tj\t%s\n" el;
+      Printf.bprintf buf "\tadd\tsp, sp, $n\n";
+      Printf.bprintf buf "\tj\t%s\n" x;
   | NonTail(a), CallCls(x, ys, zs) ->
       g'_args buf [(x, reg_cl)] ys zs;
       Printf.bprintf buf "\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg reg_cl);
@@ -190,19 +194,19 @@ and g' buf el = function (* 各命令のアセンブリ生成 (caml2html: emit_g
         Printf.bprintf buf "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
       else if List.mem a allfregs && a <> fregs.(0) then
         Printf.bprintf buf "\tfmv.s\t%s, %s\n" (reg a) (reg fregs.(0));
-and g'_tail_if oc el e1 e2 b bn rx ry =
+and g'_tail_if buf e1 e2 b bn rx ry =
   let b_else = if bn = "fle.s" || bn = "feq.s"
                   then Id.genid (bn ^ "_else") else Id.genid (b ^ "_else") in
   let s = if bn = "fle.s" || bn = "feq.s" then
     (Printf.sprintf "\t%s\t%s, %s, %s\n\tbeq\t%s, zero, %s\n" bn (reg reg_tmp) rx ry (reg reg_tmp) b_else)
           else Printf.sprintf "\t%s\t%s, %s, %s\n" bn rx ry b_else in
-  Printf.bprintf oc "%s" s;
+  Printf.bprintf buf "%s" s;
   let stackset_back = !stackset in
-  g oc el (Tail, e1);
-  Printf.bprintf oc "%s:\n" b_else;
+  g buf (Tail, e1);
+  Printf.bprintf buf "%s:\n" b_else;
   stackset := stackset_back;
-  g oc el (Tail, e2)
-and g'_non_tail_if oc el dest e1 e2 b bn rx ry =
+  g buf (Tail, e2)
+and g'_non_tail_if buf dest e1 e2 b bn rx ry =
   let b_else = if bn = "fle.s" || bn = "feq.s"
                   then Id.genid (bn ^ "_else") else Id.genid (b ^ "_else") in
   let b_cont = if bn = "fle.s" || bn = "feq.s"
@@ -210,25 +214,25 @@ and g'_non_tail_if oc el dest e1 e2 b bn rx ry =
   let s = if bn = "fle.s" || bn = "feq.s" then
     (Printf.sprintf "\t%s\t%s, %s, %s\n\tbeq\t%s, zero, %s\n" bn (reg reg_tmp) rx ry (reg reg_tmp) b_else)
           else Printf.sprintf "\t%s\t%s, %s, %s\n" bn rx ry b_else in
-  Printf.bprintf oc "%s" s;
+  Printf.bprintf buf "%s" s;
   let stackset_back = !stackset in
-  g oc el (dest, e1);
+  g buf (dest, e1);
   let stackset1 = !stackset in
-  Printf.bprintf oc "\tj\t%s\n" b_cont;
-  Printf.bprintf oc "%s:\n" b_else;
+  Printf.bprintf buf "\tj\t%s\n" b_cont;
+  Printf.bprintf buf "%s:\n" b_else;
   stackset := stackset_back;
-  g oc el (dest, e2);
-  Printf.bprintf oc "%s:\n" b_cont;
+  g buf (dest, e2);
+  Printf.bprintf buf "%s:\n" b_cont;
   let stackset2 = !stackset in
   stackset := S.inter stackset1 stackset2
-and g'_args oc x_reg_cl ys zs =
+and g'_args buf x_reg_cl ys zs =
   let (i, yrs) =
     List.fold_left
       (fun (i, yrs) y -> (i + 1, (y, regs.(i)) :: yrs))
       (0, x_reg_cl)
       ys in
   List.iter
-    (fun (y, r) -> Printf.bprintf oc "\tmv\t%s, %s\n" (reg r) (reg y))
+    (fun (y, r) -> Printf.bprintf buf "\tmv\t%s, %s\n" (reg r) (reg y))
     (shuffle reg_tmp yrs);
   let (d, zfrs) =
     List.fold_left
@@ -236,7 +240,7 @@ and g'_args oc x_reg_cl ys zs =
       (0, [])
       zs in
   List.iter
-    (fun (z, fr) -> Printf.bprintf oc "\tfmv.s\t%s, %s\n" (reg fr) (reg z))
+    (fun (z, fr) -> Printf.bprintf buf "\tfmv.s\t%s, %s\n" (reg fr) (reg z))
     (shuffle reg_fsw zfrs)
 
 let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
@@ -244,15 +248,15 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   let buffer = Buffer.create 128 in
   stackset := S.empty;
   stackmap := [];
-  g buffer (x ^ "_end") (Tail, e);
+  print_newline ();
+  print_string "Asm print_t: ";
+  Asm.print_t e;
+  g buffer (Tail, e);
   let n = stacksize () in
+  let buffer' = Buffer.create 128 in
   Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
-  Printf.fprintf oc "\tsw\tra, %d(sp)\n" (n-4);
-  Buffer.output_buffer oc buffer;
-  Printf.fprintf oc "%s_end:\n" x;
-  Printf.fprintf oc "\tlw\tra, %d(sp)\n" (n-4);
-  Printf.fprintf oc "\tadd\tsp, sp, %d\n" n;
-  Printf.fprintf oc "\tret\n"
+  Buffer.add_substitute buffer' (fun "n" -> string_of_int n) (Buffer.contents buffer);
+  Buffer.output_buffer oc buffer'
 
 let f oc (Prog(data, fundefs, e)) =
   Format.eprintf "generating assembly...@.";
@@ -266,9 +270,9 @@ let f oc (Prog(data, fundefs, e)) =
   stackset := S.empty;
   stackmap := [];
   let buffer = Buffer.create 128 in
-  g buffer "hoge" (NonTail("x0"), e);
+  g buffer (NonTail("x0"), e);
   let n = stacksize () in
   Printf.fprintf oc "_min_caml_start: # main entry point\n";
-  if n = 4 then ()
-  else Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n+4);
-  Buffer.output_buffer oc buffer;
+  if n = 0 then ()
+  else Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
+  Buffer.output_buffer oc buffer

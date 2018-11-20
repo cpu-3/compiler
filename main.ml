@@ -20,7 +20,8 @@ let lexbuf outchan nml = (* バッファをコンパイルしてチャンネル�
                (let a = iter !limit
                    (let b = Alpha.f nml in
                    print_string "KNormal after alpha: "; KNormal.print_t b; print_newline (); b) in
-                print_string "KNormal after iter: "; KNormal.print_t a; a))))) in (* knormal.t -> knormal.t *)
+               print_string "KNormal after iter: "; KNormal.print_t a; print_newline (); a))))) in (* knormal.t -> knormal.t *)
+  print_string "Asm.Prog: ";
   Asm.print_prog prog;
   Emit.f outchan prog
 
