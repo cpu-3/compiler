@@ -97,7 +97,6 @@ print_int2.5:
 	sw	ra, 8(sp)
 	bne	a0, zero, beq_else.46
 	bne	a1, zero, beq_else.47
-	nop
 	j	print_int2.5_end
 beq_else.47:
 	li	a0, 48
