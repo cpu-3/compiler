@@ -52,3 +52,5 @@ typing.cmi
 typing.cmo
 virtual.cmi
 virtual.cmo
+typecheck.cmi
+typecheck.cmo

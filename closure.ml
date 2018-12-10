@@ -113,3 +113,92 @@ let f e =
   toplevel := [];
   let e' = g M.empty S.empty e in
   Prog(List.rev !toplevel, e')
+
+
+let rec print_t = function
+  | Unit -> print_string "unit"
+  | Int i -> (print_string "int ";
+              print_int i)
+  | Float x -> (print_string "float ";
+                print_float x)
+  | Neg s -> print_string ("neg " ^ s ^ " ")
+  | Add (s1, s2) -> print_string (s1 ^ " + " ^ s2 ^ " ");
+  | Sub (s1, s2) -> print_string (s1 ^ " - " ^ s2 ^ " ");
+  | Mul (s1, s2) -> print_string (s1 ^ " * " ^ s2 ^ " ");
+  | Div (s1, s2) -> print_string (s1 ^ " / " ^ s2 ^ " ");
+  | FNeg s -> print_string ("fneg " ^ s ^ " ")
+  | FAdd (s1, s2) -> print_string (s1 ^ " +. " ^ s2 ^ " ");
+  | FSub (s1, s2) -> print_string (s1 ^ " -. " ^ s2 ^ " ");
+  | FMul (s1, s2) -> print_string (s1 ^ " *. " ^ s2 ^ " ");
+  | FDiv (s1, s2) -> print_string (s1 ^ " /. " ^ s2 ^ " ");
+  | FSqrt s -> print_string ("fsqrt " ^ s ^ " ");
+  | IfEq (s1, s2, t1, t2) ->
+      (print_string ("ifeq " ^ s1 ^  " = "  ^ s2 ^ " then ");
+       print_t t1;
+       print_string " else ";
+       print_t t2;
+       print_string " ")
+  | IfLE (s1, s2, t1, t2) ->
+      (print_string ("ifle " ^ s1 ^  " <= "  ^ s2 ^ " then ");
+       print_t t1;
+       print_string " else ";
+       print_t t2;
+       print_string " ")
+  | Let ((s, t), t1, t2) -> (print_string ("let " ^ s ^ ": ");
+                             Type.print_t t;
+                             print_string " = ";
+                             print_t t1;
+                             print_string " in ";
+                             print_t t2;
+                             print_string " ")
+  | Var s -> print_string ("var " ^ s ^ " ")
+  | MakeCls ((s, t), { entry = Id.L(x); actual_fv = xs }, t1) ->
+      (print_string ("makecls " ^ s ^ ": ");
+       Type.print_t t;
+       print_string (" entry = " ^ x ^ ", actual_fv = ");
+       List.iter (fun x' -> print_string (x' ^ ", ")) xs;
+       print_t t1;
+       print_string " "
+  )
+  | AppCls (s1, ss) -> (print_string ("appcls (" ^ s1 ^ ", ");
+                        List.iter (fun s' -> print_string (s' ^ ", ")) ss;
+                        print_string ") ")
+  | AppDir (L s1, ss) -> (print_string ("appdir (" ^ s1 ^ ", ");
+                          List.iter (fun s' -> print_string (s' ^ ", ")) ss;
+                          print_string ") ")
+  | Tuple (s::ss) -> (print_string ("tuple (" ^ s);
+                      List.iter (fun s' -> print_string (", " ^ s')) ss;
+                      print_string ") ")
+  | LetTuple (s::ss, s1, t) -> (print_string ("lettuple (" ^ (fst s) ^ ": ");
+                                Type.print_t (snd s);
+                                List.iter (fun (s', t') ->
+                                  (print_string (", " ^ s' ^ ": ");
+                                   Type.print_t t')) ss;
+                                print_string (") = " ^ s1 ^ " in ");
+                                print_t t;
+                                print_string " ")
+  | Get (s1, s2) -> print_string (s1 ^ " . (" ^ s2 ^ " ");
+  | Put (s1, s2, s3) -> print_string (s1 ^ " . (" ^ s2 ^ ") <- " ^ s3 ^ " ");
+  | ExtArray (L l) -> print_string ("extarray " ^ l)
+  | ExtTuple (L l) -> print_string ("exttuple " ^ l)
+
+let print_fundef { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e } =
+  print_string ("\nname = " ^ x ^ ": ");
+  Type.print_t t;
+  print_string "\nargs = ";
+  List.iter (fun (x', t') ->
+    print_string (x' ^ ": ");
+    Type.print_t t';
+    print_string ", ") yts;
+  print_string "\nformal_fv = ";
+  List.iter (fun (x', t') ->
+    print_string (x' ^ ": ");
+    Type.print_t t';
+    print_string ", ") zts;
+  print_string "\nbody = ";
+  print_t e
+
+
+let print_prog (Prog (fndefs, e)) =
+  List.iter (fun fndef -> print_fundef fndef; print_newline ()) fndefs;
+  print_t e
