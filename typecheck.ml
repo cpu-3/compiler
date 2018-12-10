@@ -33,14 +33,15 @@ let rec h = function
       Typing.unify t1' t2'; t1'
   | Let ((x, t), t1, t2) -> let t1' = h t1 in
                             Typing.unify t1' t;
+                            let old_tyenv = !tyenv in
                             tyenv := M.add x t !tyenv;
-                            h t2
-  | Var(x) -> M.find x !tyenv
+                            let t' = h t2 in (tyenv := old_tyenv; t')
+  | Var(x) when M.mem x !tyenv -> M.find x !tyenv
   | MakeCls ((x, t), cl, t') -> updateenv x t; h t'
   | AppCls (x, xs) -> (match M.find x !tyenv with
                       | Type.Fun(ts, t) -> List.map2 (fun x t -> updateenv x t) xs ts; t
                       | _ -> raise (TypeError(x)))
-  | AppDir (L(l), xs) when (String.length l > 9 && String.equal (String.sub l 0 9) "min_caml_") ->
+  | AppDir (L(l), xs) when (String.length l > 9 && String.equal (String.sub l 0 9) "min_caml_") ->  (* 外部関数を呼ぶとき *)
       (match M.find_opt (String.sub l 9 (String.length l - 9)) !Typing.extenv with
       | Some(Type.Fun(ts, t)) -> List.map2 (fun x t -> updateenv x t) xs ts; t
       | None -> Type.gentyp ()
@@ -51,7 +52,9 @@ let rec h = function
       | None -> Type.gentyp ()
       | _ -> raise (TypeError(l)))
   | Tuple xs -> Type.Tuple(List.map (fun x -> M.find x !tyenv) xs)
-  | LetTuple (xs, x, t) -> updateenv x (Type.Tuple(List.map snd xs)); List.iter (fun (x', t') -> updateenv x' t') xs; h t
+  | LetTuple (xs, x, t) ->
+      let old_tyenv = !tyenv in
+      updateenv x (Type.Tuple(List.map snd xs)); List.iter (fun (x', t') -> updateenv x' t') xs; let t' = h t in (tyenv := old_tyenv; t')
   | Get (x, y) -> let t = Type.gentyp () in updateenv x (Type.Array(t)); updateenv y Type.Int; t
   | Put (x, y, z) -> updateenv x (Type.Array(M.find z !tyenv)); updateenv y Type.Int; Type.Unit
   | ExtArray (L(x)) -> M.find x !Typing.extenv
