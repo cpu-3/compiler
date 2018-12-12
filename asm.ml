@@ -192,4 +192,8 @@ let print_prog (Prog(fls, topfs, e)) =
   print_string "\n";
   print_t e)
 
-
+let latency exp = match exp with
+  | FLi(_) | Lw(_) -> 1
+  | FAdd(_) | FSub(_) | FMul(_) | FSqrt(_) -> 2
+  | FDiv(_)  -> 4
+  | _ -> 0

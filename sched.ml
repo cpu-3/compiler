@@ -5,6 +5,7 @@ type ty = (Id.t * Type.t) * exp
 type node = {child: node list ref;
              parents: node list ref;
              score: int ref;
+             subscore: int ref;
              count: int ref;
              exp: ty ref}
 
@@ -13,6 +14,7 @@ let gen_node exp = {
   child=ref [];
   parents=ref [];
   score=ref 0;
+  subscore=ref 0;
   exp=ref exp}
 
 let rec g cmds' =
@@ -146,20 +148,46 @@ and gen_graph node exp env toplevels next =
     match next with
     | Ans(_) -> (env, toplevels, next)
     | Let(_) -> tot next env toplevels
-and find_maximum toplevels mx node rem = match toplevels with
+and find_minimum toplevels mn node rem = match toplevels with
   | [] -> (node, rem)
   | x::xs ->
     let (mn, node, rem) =
+      if !(x.score) < mn then (!(x.score), x, node::rem)
+      else if !(x.score) > mn then  (mn, node, x::rem)
+      else (
+        let (_, exp) = !(node.exp) in
+        node.subscore := -(latency exp);
+        let (_, exp) = !(x.exp) in
+        x.subscore := -(latency exp);
+        if !(x.subscore) < !(node.subscore) then (!(x.score), x, node::rem)
+        else (mn, node, x::rem)
+      )
+    in
+    find_minimum xs mn node rem
+and find_maximum toplevels mx node rem = match toplevels with
+  | [] -> (node, rem)
+  | x::xs ->
+    let (mx, node, rem) =
       if !(x.score) > mx then (!(x.score), x, node::rem) else (mx, node, x::rem) in
-    find_maximum xs mx node rem
-and schedule env toplevels cont = match toplevels with
+    find_minimum xs mx node rem
+and latency_sched env toplevels cont =  match toplevels with
   | [] -> cont
   | x::xs ->
-    let (node, toplevels) = find_maximum xs !(x.score) x [] in
+    let (node, toplevels) = find_minimum xs !(x.score) x [] in
+    let max x y = if x > y then x else y in
+    let rec update toplevels = match toplevels with
+      | [] -> ()
+      | x::xs ->
+        x.score := max (!(x.score) - 1) 0;
+        update xs
+    in
+    update toplevels;
     let rec loop nodes toplevels = match nodes with
       | [] -> toplevels
       | x::xs ->
-        x.score := !(node.score) + 1;
+        (*x.score := !(node.score) + 1;*)
+        let (_, exp) = !(node.exp) in
+        x.score := latency exp;
         x.count := !(x.count) + 1;
         if !(x.count) =( List.length !(x.parents)) then
           loop xs (x::toplevels)
@@ -170,6 +198,28 @@ and schedule env toplevels cont = match toplevels with
     let cont = schedule env toplevels cont in
     let ((id, t), exp) = !(node.exp) in
     Let((id, t), exp, cont)
+and resource_sched env toplevels cont = match toplevels with
+  | [] -> cont
+  | x::xs ->
+    let (node, toplevels) = find_maximum xs !(x.score) x [] in
+    let rec loop nodes toplevels = match nodes with
+      | [] -> toplevels
+      | x::xs ->
+        (*x.score := !(node.score) + 1;*)
+        let (_, exp) = !(node.exp) in
+        x.score := latency exp;
+        x.count := !(x.count) + 1;
+        if !(x.count) =( List.length !(x.parents)) then
+          loop xs (x::toplevels)
+        else
+          loop xs toplevels
+    in
+    let toplevels = loop !(node.child) toplevels in
+    let cont = schedule env toplevels cont in
+    let ((id, t), exp) = !(node.exp) in
+    Let((id, t), exp, cont)
+and schedule env toplevels cont =
+  latency_sched env toplevels cont
 let rec f' fundefs result = match fundefs with
   | [] -> result
   | x::xs ->
