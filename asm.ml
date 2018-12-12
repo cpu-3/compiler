@@ -189,3 +189,7 @@ let print_prog (Prog(fls, topfs, e)) =
   print_string "\n";
   print_t e)
 
+let latency asm = match asm with
+  | Nop | SetL | Mv | Neg | Add | Sub | Mul
+  |
+
