@@ -12,18 +12,22 @@ let rec iter n e = (* 最適化処理をくりかえす (caml2html: main_iter) *
 let lexbuf outchan nml = (* バッファをコンパイルしてチャンネルへ出力する (caml2html: main_lexbuf) *)
   Id.counter := 0;
   Typing.extenv := M.empty;
-  let prog =
-    (RegAlloc.f
-       (Sched.f
-          (Simm.f
-             (Virtual.f        (* closure.prog -> asm.prog *)
-                (Typecheck.f
-                   (Closure.f     (* knormal.t -> closure.prog *)
-                      (let a = iter !limit
-                           (let b = Alpha.f nml in
-                            print_string "KNormal after alpha: "; KNormal.print_t b; print_newline (); b) in
-                       print_string "KNormal after iter: "; KNormal.print_t a;
-                       print_newline (); a))))))) in (* knormal.t -> knormal.t *)
+  let tmp = (Simm.f
+               (Virtual.f        (* closure.prog -> asm.prog *)
+                  (Typecheck.f
+                     (Closure.f     (* knormal.t -> closure.prog *)
+                        (let a = iter !limit
+                             (let b = Alpha.f nml in
+                              print_string "KNormal after alpha: "; KNormal.print_t b; print_newline (); b) in
+                         print_string "KNormal after iter: "; KNormal.print_t a;
+                         print_newline (); a))))) in (* knormal.t -> knormal.t *)
+  let _ = Asm.print_prog tmp in
+  let _ = print_string "\n--------------------------------------\n" in
+  let tmp = Sched.f tmp in
+  let _ = print_string "\n--------------------------------------\n" in
+  let _ = Asm.print_prog tmp in
+  let _ = print_string "\n--------------------------------------\n" in
+  let prog = RegAlloc.f tmp in
   print_string "\nAsm.Prog: ";
   Asm.print_prog prog;
   Emit.f outchan prog

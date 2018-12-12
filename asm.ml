@@ -103,7 +103,9 @@ let rec print_t = function
       (print_string ("let " ^ s ^ " = ");
       print_exp exp;
       print_string " in ";
-      print_t t;)
+      print_newline ();
+      print_t t;
+      )
 and print_exp = function
   | Nop -> print_string "nop"
   | Li(n) -> (print_string "li "; print_int n)
@@ -184,6 +186,7 @@ let print_prog (Prog(fls, topfs, e)) =
     print_string ("\tname: " ^ n ^ "\n\targs: (");
     List.iter(fun x -> print_string(x ^ ",")) fd.args;
     print_string (")\n\tbody: ");
+    print_newline ();
     print_t(fd.body);
     print_string ("\n");) topfs;
   print_string "\n";

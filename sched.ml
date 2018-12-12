@@ -13,11 +13,12 @@ let gen_node exp = {
   score=ref 0;
   exp=ref exp}
 
-let rec g cmds = match cmds with
+let rec g cmds' =
+  match cmds' with
   | Ans e ->
-    cmds
-  | Let((id, t), exp, cmds) ->
-    let (env, toplevels, cmds) = tot cmds M.empty [] in
+    cmds'
+  | Let(_) ->
+    let (env, toplevels, cmds) = tot cmds' M.empty [] in
     let cont = g cmds in
     schedule env toplevels cont
 and tot cmds env toplevels = match cmds with
@@ -32,7 +33,7 @@ and search_and_add node x env =
   try
     let par = M.find x env in
     par.child := node :: !(par.child);
-    par.parents := par :: !(par.parents);
+    node.parents := par :: !(node.parents);
   with
   | Not_found -> ()
 and gen_graph node exp env toplevels next =
@@ -106,6 +107,8 @@ and gen_graph node exp env toplevels next =
     (loop b; loop c)
   ) in
   let toplevels =
+    print_exp exp;
+    print_newline ();
     (* 依存関係0 *)
     if List.length !(node.parents) = 0 then
       node:: toplevels
@@ -125,7 +128,6 @@ and find_minimum toplevels mn node rem = match toplevels with
     let (mn, node, rem) =
       if !(x.score) < mn then (!(x.score), x, node::rem) else (mn, node, x::rem) in
     find_minimum xs mn node rem
-
 and schedule env toplevels cont = match toplevels with
   | [] -> cont
   | x::xs ->
@@ -140,7 +142,6 @@ and schedule env toplevels cont = match toplevels with
     let cont = schedule env toplevels cont in
     let ((id, t), exp) = !(node.exp) in
     Let((id, t), exp, cont)
-
 let rec f' fundefs result = match fundefs with
   | [] -> result
   | x::xs ->

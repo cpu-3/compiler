@@ -41,6 +41,7 @@ type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret 
 type prog = Prog of (Id.l * float) list * fundef list * t
 
 val print_t : t -> unit
+val print_exp : exp -> unit
 val print_prog : prog -> unit
 
 val fletd : Id.t * exp * t -> t (* shorthand of Let for float *)
