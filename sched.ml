@@ -1,8 +1,6 @@
 open Asm
 
-type ty =
-  | AnsN of exp
-  | LetN of (Id.t * Type.t) * exp
+type ty = (Id.t * Type.t) * exp
 
 type node = {child: node list ref;
              parents: node list ref;
@@ -15,118 +13,116 @@ let gen_node exp = {
   count=ref 0;
   exp=ref exp}
 
-let rec tot cmds env toplevels = match cmds with
+let rec f cmds = match cmds with
+  | Ans e ->
+    cmds
+  | Let((id, t), exp, cmds) ->
+    let (env, toplevels, cmds) = tot cmds M.empty [] in
+    let cont = f cmds in
+    schedule env toplevels cont
+and tot cmds env toplevels = match cmds with
     | Let ((id, ty), e, cmds) ->
-      let node = gen_node (LetN((id, ty), e)) in
+      let node = gen_node ((id, ty), e) in
       let env = M.add id node env in
-      env, tops, cont = gen_graph node e env toplevels (Some cmds) in
+      gen_graph node e env toplevels cmds
     | Ans e ->
-      let node = gen_node (AnsN e) in
-      gen_graph node e env toplevels None
-and search_and_add node x env toplevels =
+      (env, toplevels, cmds)
+and search_and_add node x env =
   (* 見つからなければ現在見ているまとまりの中には
    * 依存関係がない、よってtoplevel *)
   try
     let par = M.find x env in
     par.child := node :: !(par.child);
     par.parents := par :: !(par.parents);
-    toplevels
   with
-  | Not_found -> node :: toplevels
+  | Not_found -> ()
 and gen_graph node exp env toplevels next =
-  let toplevels = (match exp with
+  let _ = (match exp with
   | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) ->
-    toplevels
+    ()
   | Mv(x) | Neg (x) | FMv(x) | FNeg(x) | FSqrt(x) | Restore(x) ->
-    search_and_add node x env toplevels
+    search_and_add node x env
   | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | Sll(x, y)
   | Lw(x, y) | Lfd(x, y) ->
-    let toplevels = search_and_add node x env toplevels in
+    let _ = search_and_add node x env in
     (match y with
     | V(y') ->
-      search_and_add node y' env toplevels
+      search_and_add node y' env
     | C(_) ->
-      toplevels)
+      ())
   | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Save(x, y) ->
-    let toplevels = search_and_add node x env toplevels in
-    search_and_add node y env toplevels
+    let _ = search_and_add node x env in
+    search_and_add node y env
   | Sw(x, y, z) | Stfd(x, y, z) ->
-    let toplevels = search_and_add node x env toplevels in
-    let toplevels = search_and_add node y env toplevels in
+    let _ = search_and_add node x env in
+    let _ = search_and_add node y env in
     (match z with
     | V(y') ->
-      search_and_add node y' env toplevels
+      search_and_add node y' env
     | C(_) ->
-      toplevels)
+      ())
   | IfEq (x, y, a, b) | IfLE (x, y, a, b) | IfGE(x, y, a, b) ->
-    let toplevels = search_and_add node x env toplevels in
-    let toplevels = (match y with
+    let _ = search_and_add node x env in
+    let _ = (match y with
     | V(y') ->
-      search_and_add node y' env toplevels
+      search_and_add node y' env
     | C(_) ->
-      toplevels) in
-    let (env', top') = tot a M.empty [] in
-    let a' = schedule env' top' in
-    let (env', top') = tot b M.empty [] in
-    let b' = schedule env' top' in
+      ()) in
+    let a' = f a in
+    let b' = f b in
     let exp = (match exp with
     | IfEq(_) -> IfEq(x, y, a', b')
     | IfLE(_) -> IfLE(x, y, a', b')
     | IfGE(_) -> IfGE(x, y, a', b')
     | x -> failwith "fail") in
-    let _ = (match !(node.exp) with
-     | LetN((id, t), _) ->
-       node.exp := LetN((id, t), exp)
-     | AnsN(e) ->
-       node.exp := AnsN(exp)
-    )in
-    toplevels
+    let ((id, t), _) = !(node.exp) in
+    node.exp := ((id, t), exp)
   | IfFEq(x, y, a, b) | IfFLE(x, y, a, b) ->
-    let toplevels = search_and_add node x env toplevels in
-    let toplevels = search_and_add node y env toplevels in
-    let (env', top') = tot a M.empty [] in
-    let a' = schedule env' top' in
-    let (env', top') = tot b M.empty [] in
-    let b' = schedule env' top' in
+    let _ = search_and_add node x env in
+    let _ = search_and_add node y env in
+    let a' = f a in
+    let b' = f b in
     let exp = (match exp with
     | IfFEq(_) -> IfFEq(x, y, a', b')
     | IfFLE(_) -> IfFLE(x, y, a', b')
     | x -> failwith "fail") in
-    let _ = (match !(node.exp) with
-     | LetN((id, t), _) ->
-       node.exp := LetN((id, t), exp)
-     | AnsN(e) ->
-       node.exp := AnsN(exp)
-    )in
-    toplevels
+    let ((id, t), _) = !(node.exp) in
+    node.exp := ((id, t), exp)
   | CallCls (x, b, c) ->
-    let toplevels = search_and_add node x env toplevels in
-    let rec loop l top = match l with
-      | [] -> top
+    let _ = search_and_add node x env in
+    let rec loop l = match l with
+      | [] -> ()
       | x::xs ->
-        let top = search_and_add node x env top in
-        loop xs top
+        let _ = search_and_add node x env in
+        loop xs
     in
-    loop c (loop b toplevels)
+    (loop b; loop c)
   | CallDir (_, b, c) ->
-    let rec loop l top = match l with
-      | [] -> top
+    let rec loop l = match l with
+      | [] -> ()
       | x::xs ->
-        let top = search_and_add node x env top in
-        loop xs top
+        let _ = search_and_add node x env in
+        loop xs
     in
-    loop c (loop b toplevels)
+    (loop b; loop c)
   ) in
-  match next with
-  | Some (cmds) ->
-    tot cmds env toplevels
-  | None ->
-    (env, toplevels)
-and schedule env toplevels = match toplevels with
-  | [] -> failwith "program error"
+  let toplevels =
+    if List.length !(node.parents) = 0 then
+      node:: toplevels
+    else
+      toplevels
+  in
+  match exp with
+  | IfEq(_) | IfLE(_) | IfGE(_) | IfFEq(_) | IfFLE(_) ->
+    (env, toplevels, next)
+  | _ ->
+    match next with
+    | Ans(_) -> (env, toplevels, next)
+    | Let(_) -> tot next env toplevels
+and schedule env toplevels cont = match toplevels with
+  | [] -> cont
+  | x::xs ->
   | [x] -> match !(x.exp) with
-    | AnsN of e ->
-      Ans(e)
     | LetN((id, t), exp) ->
       let rec loop children tops = match children with
         | [] -> tops
