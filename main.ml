@@ -23,7 +23,7 @@ let lexbuf outchan nml = (* バッファをコンパイルしてチャンネル�
                          print_newline (); a))))) in (* knormal.t -> knormal.t *)
   let _ = Asm.print_prog tmp in
   let _ = print_string "\n--------------------------------------\n" in
-  let tmp = Sched.f tmp in
+  (*let tmp = Sched.f tmp in*)
   let _ = print_string "\n--------------------------------------\n" in
   let _ = Asm.print_prog tmp in
   let _ = print_string "\n--------------------------------------\n" in

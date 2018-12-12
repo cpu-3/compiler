@@ -194,6 +194,7 @@ and g' buf = function (* 各命令のアセンブリ生成 (caml2html: emit_gpri
         Printf.bprintf buf "\tmv\t%s, %s\n" (reg a) (reg regs.(0))
       else if List.mem a allfregs && a <> fregs.(0) then
         Printf.bprintf buf "\tfmv.s\t%s, %s\n" (reg a) (reg fregs.(0));
+  | (_, x) -> (print_newline (); print_exp x; print_newline (); failwith "error")
 and g'_tail_if buf e1 e2 b bn rx ry =
   let b_else = if bn = "fle.s" || bn = "feq.s"
                   then Id.genid (bn ^ "_else") else Id.genid (b ^ "_else") in

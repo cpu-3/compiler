@@ -5,9 +5,11 @@ type ty = (Id.t * Type.t) * exp
 type node = {child: node list ref;
              parents: node list ref;
              score: int ref;
+             count: int ref;
              exp: ty ref}
 
 let gen_node exp = {
+  count=ref 0;
   child=ref [];
   parents=ref [];
   score=ref 0;
@@ -16,7 +18,29 @@ let gen_node exp = {
 let rec g cmds' =
   match cmds' with
   | Ans e ->
-    cmds'
+    let g2 a b =
+      let a' = g a in
+      let b' = g b in
+      (a', b')
+    in
+    (match e with
+     | IfEq(x, y, t1, t2) ->
+       let (t1, t2) = g2 t1 t2 in
+       Ans(IfEq(x, y, t1, t2))
+     | IfLE(x, y, t1, t2) ->
+       let (t1, t2) = g2 t1 t2 in
+       Ans(IfLE(x, y, t1, t2))
+     | IfGE(x, y, t1, t2) ->
+       let (t1, t2) = g2 t1 t2 in
+       Ans(IfGE(x, y, t1, t2))
+     | IfFEq(x, y, t1, t2) ->
+       let (t1, t2) = g2 t1 t2 in
+       Ans(IfFEq(x, y, t1, t2))
+     | IfFLE(x, y, t1, t2) ->
+       let (t1, t2) = g2 t1 t2 in
+       Ans(IfFLE(x, y, t1, t2))
+     | _ -> cmds'
+    )
   | Let(_) ->
     let (env, toplevels, cmds) = tot cmds' M.empty [] in
     let cont = g cmds in
@@ -122,21 +146,25 @@ and gen_graph node exp env toplevels next =
     match next with
     | Ans(_) -> (env, toplevels, next)
     | Let(_) -> tot next env toplevels
-and find_minimum toplevels mn node rem = match toplevels with
+and find_maximum toplevels mx node rem = match toplevels with
   | [] -> (node, rem)
   | x::xs ->
     let (mn, node, rem) =
-      if !(x.score) < mn then (!(x.score), x, node::rem) else (mn, node, x::rem) in
-    find_minimum xs mn node rem
+      if !(x.score) > mx then (!(x.score), x, node::rem) else (mx, node, x::rem) in
+    find_maximum xs mx node rem
 and schedule env toplevels cont = match toplevels with
   | [] -> cont
   | x::xs ->
-    let (node, toplevels) = find_minimum xs !(x.score) x [] in
+    let (node, toplevels) = find_maximum xs !(x.score) x [] in
     let rec loop nodes toplevels = match nodes with
       | [] -> toplevels
       | x::xs ->
         x.score := !(node.score) + 1;
-        loop xs (x::toplevels)
+        x.count := !(x.count) + 1;
+        if !(x.count) =( List.length !(x.parents)) then
+          loop xs (x::toplevels)
+        else
+          loop xs toplevels
     in
     let toplevels = loop !(node.child) toplevels in
     let cont = schedule env toplevels cont in
