@@ -17,6 +17,10 @@ let gen_node exp = {
   subscore=ref 0;
   exp=ref exp}
 
+(* 副作用に使うkeyのprefix *)
+let prefix = "!side_effects!"
+let side_effects = ref []
+
 let rec g cmds' =
   match cmds' with
   | Ans e ->
@@ -47,9 +51,26 @@ let rec g cmds' =
     let (env, toplevels, cmds) = tot cmds' M.empty [] in
     let cont = g cmds in
     schedule env toplevels cont
+and find x env =
+  try
+    let (r, _) = M.find x env in
+    r
+  with
+  |Not_found -> []
 and tot cmds env toplevels = match cmds with
     | Let ((id, ty), e, cmds) ->
-      let node = gen_node ((id, ty), e) in let env = M.add id node env in
+      let node = gen_node ((id, ty), e) in
+      (* まず、すでに使われている変数ならば、
+       * すでに使われた場所に対する依存関係を追加*)
+      (try
+        let (r, dependencies) = M.find id env in
+        add_multi node env [r];
+        add_multi node env dependencies
+      with
+      |Not_found -> ());
+      (* 次に、レジスタが書き換わるので、環境の
+       * idのnodeをリセット *)
+      let env = M.add id (node, []) env in
       gen_graph node e env toplevels cmds
     | Ans e ->
       (env, toplevels, cmds)
@@ -57,43 +78,54 @@ and search_and_add node x env =
   (* 見つからなければ現在見ているまとまりの中には
    * 依存関係がない、よってtoplevel *)
   try
-    let par = M.find x env in
+    let (r, deps) = M.find x env in
+    add_multi node env [r];
+    M.add x (r, node::deps) env
+  with
+  |Not_found -> env
+and search_and_add_multi node env l = match l with
+  | [] -> env
+  | x::xs ->
+    let env = search_and_add node x env in
+    search_and_add_multi node env xs
+and add_multi node env l = match l with
+  | [] -> ()
+  | par::xs ->
     par.child := node :: !(par.child);
     node.parents := par :: !(node.parents);
-  with
-  | Not_found -> ()
+    add_multi node env xs
 and gen_graph node exp env toplevels next =
-  let _ = (match exp with
+  let env = (match exp with
   | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) ->
-    ()
+    env
   | Mv(x) | Neg (x) | FMv(x) | FNeg(x) | FSqrt(x) | Restore(x) ->
     search_and_add node x env
   | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | Sll(x, y)
   | Lw(x, y) | Lfd(x, y) ->
-    let _ = search_and_add node x env in
+    let env = search_and_add node x env in
     (match y with
     | V(y') ->
       search_and_add node y' env
     | C(_) ->
-      ())
+      env)
   | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Save(x, y) ->
-    let _ = search_and_add node x env in
+    let env = search_and_add node x env in
     search_and_add node y env
   | Sw(x, y, z) | Stfd(x, y, z) ->
-    let _ = search_and_add node x env in
-    let _ = search_and_add node y env in
+    let env = search_and_add node x env in
+    let env = search_and_add node y env in
     (match z with
     | V(y') ->
       search_and_add node y' env
     | C(_) ->
-      ())
+      env)
   | IfEq (x, y, a, b) | IfLE (x, y, a, b) | IfGE(x, y, a, b) ->
-    let _ = search_and_add node x env in
-    let _ = (match y with
+    let env = search_and_add node x env in
+    let env = (match y with
     | V(y') ->
       search_and_add node y' env
     | C(_) ->
-      ()) in
+      env) in
     let a' = g a in
     let b' = g b in
     let exp = (match exp with
@@ -102,10 +134,11 @@ and gen_graph node exp env toplevels next =
     | IfGE(_) -> IfGE(x, y, a', b')
     | x -> failwith "fail") in
     let ((id, t), _) = !(node.exp) in
-    node.exp := ((id, t), exp)
+    node.exp := ((id, t), exp);
+    env
   | IfFEq(x, y, a, b) | IfFLE(x, y, a, b) ->
-    let _ = search_and_add node x env in
-    let _ = search_and_add node y env in
+    let env = search_and_add node x env in
+    let env = search_and_add node y env in
     let a' = g a in
     let b' = g b in
     let exp = (match exp with
@@ -113,24 +146,16 @@ and gen_graph node exp env toplevels next =
     | IfFLE(_) -> IfFLE(x, y, a', b')
     | x -> failwith "fail") in
     let ((id, t), _) = !(node.exp) in
-    node.exp := ((id, t), exp)
+    node.exp := ((id, t), exp);
+    env
   | CallCls (x, b, c) ->
     let _ = search_and_add node x env in
-    let rec loop l = match l with
-      | [] -> ()
-      | x::xs ->
-        let _ = search_and_add node x env in
-        loop xs
-    in
-    (loop b; loop c)
+    (* handle side effects *)
+    let env = search_and_add_multi node env b in
+    search_and_add_multi node env c
   | CallDir (_, b, c) ->
-    let rec loop l = match l with
-      | [] -> ()
-      | x::xs ->
-        let _ = search_and_add node x env in
-        loop xs
-    in
-    (loop b; loop c)
+    let env = search_and_add_multi node env b in
+    search_and_add_multi node env c
   ) in
   let toplevels =
     print_exp exp;
