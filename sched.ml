@@ -14,7 +14,6 @@ type node = {child: node list ref;
              subscore: int ref;
              count: int ref;
              id: int;
-             last: bool ref;
              exp: ty ref}
 
 let gen_node exp = {
@@ -24,7 +23,6 @@ let gen_node exp = {
   score=ref 0;
   subscore=ref 0;
   id=gen_id ();
-  last=ref false;
   exp=ref exp}
 
 module S =
@@ -37,7 +35,10 @@ include S
 
 (* 副作用に使うkey *)
 let side_effects_key= "!side_effects!"
+let write_side_effects_key= "!write_side_effects!"
 
+(* if文でコンポーネントが分離した場合、最後にifが来てほしくなる *)
+(* そのために、toplevelsから辿れるすべてのleafに、ifを依存させる*)
 let rec make_last node toplevels = match toplevels with
   | [] -> ()
   | x::xs ->
@@ -52,6 +53,8 @@ let rec make_last node toplevels = match toplevels with
         loop l
     in
     dfs x; make_last node xs
+
+(* dot -Kdot -Tpng  graph -o out.png; open out.png *)
 let rec print_graph toplevels s = match toplevels with
   | [] -> s
   | x::xs ->
@@ -74,6 +77,9 @@ let rec print_graph toplevels s = match toplevels with
       s
     in
     print_graph xs s
+
+(* 本体 Asm.t -> Asm.t
+ * グラフをまず構築して、そのあとスケジューリングする *)
 let rec g cmds' =
   match cmds' with
   | Ans e ->
@@ -110,7 +116,9 @@ and find_dependencies x env =
     let (_, l) = M.find x env in
     l
   with
-  |Not_found -> []
+  | Not_found -> []
+(* Asm.tから、nodeを作る。依存関係を解析して、
+ * それらに対するグラフ構造を構築する *)
 and tot cmds env toplevels = match cmds with
     | Let ((id, ty), e, cmds) ->
       let node = gen_node ((id, ty), e) in
@@ -128,6 +136,7 @@ and tot cmds env toplevels = match cmds with
       gen_graph node e env toplevels cmds
     | Ans e ->
       (env, toplevels, cmds)
+(* 補助関数 envから依存関係を探す *)
 and search_and_add node x env =
   (* 見つからなければ現在見ているまとまりの中には
    * 依存関係がない、よってtoplevel *)
@@ -141,6 +150,7 @@ and search_and_add node x env =
       M.add x (r, node::deps) env
     with
     |Not_found -> env)
+(* 補助関数群 envから依存関係を探す *)
 and add_depenency node x env =
   try
     let (r, deps) = M.find x env in
@@ -159,6 +169,8 @@ and add_multi node env l = match l with
     par.child := node :: !(par.child);
     node.parents := par :: !(node.parents);
     add_multi node env xs
+(* nodeと今見ている命令(exp)から、依存関係を解析する *)
+(* 同時に副作用を解析し、副作用に関する依存関係も追加する *)
 and gen_graph node exp env toplevels next =
   let env = (match exp with
   | Nop | Li(_) | SetL(_) | Comment(_) ->
@@ -167,8 +179,17 @@ and gen_graph node exp env toplevels next =
     add_depenency node side_effects_key env
   | Mv(x) | Neg (x) | FMv(x) | FNeg(x) | FSqrt(x) ->
     search_and_add node x env
+  | ReadHp ->
+    add_depenency node side_effects_key env
+  | AddHp(x) ->
+    let deps = find_dependencies side_effects_key env in
+    add_multi node env deps;
+    (match x with
+    | V(y') ->
+      search_and_add node y' env
+    | C(_) ->
+      env)
   | Restore(x) ->
-    print_string "restore!!\n\n";
     let env = add_depenency node side_effects_key env in
     search_and_add node x env
   | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | Sll(x, y) ->
@@ -179,6 +200,10 @@ and gen_graph node exp env toplevels next =
     | C(_) ->
       env)
   | Lw(x, y) | Lfd(x, y) ->
+    (* 直近の副作用発生ポイントから依存させる *)
+    (match M.find_opt write_side_effects_key env with
+    | Some(n, _) -> add_multi node env [n]
+    | None -> ());
     let env = add_depenency node side_effects_key env in
     let env = search_and_add node x env in
     (match y with
@@ -190,7 +215,6 @@ and gen_graph node exp env toplevels next =
     let env = search_and_add node x env in
     search_and_add node y env
   | Save(x, y) ->
-    print_string "save!!\n\n";
     let deps = find_dependencies side_effects_key env in
     add_multi node env deps;
     let env = M.add side_effects_key (node, [node]) env in
@@ -200,6 +224,8 @@ and gen_graph node exp env toplevels next =
     let deps = find_dependencies side_effects_key env in
     add_multi node env deps;
     let env = M.add side_effects_key (node, [node]) env in
+    (* 現状の直近書き込み副作用を更新 *)
+    let env = M.add write_side_effects_key (node, [node]) env in
     let env = search_and_add node x env in
     let env = search_and_add node y env in
     (match z with
@@ -240,6 +266,7 @@ and gen_graph node exp env toplevels next =
     let deps = find_dependencies side_effects_key env in
     add_multi node env deps;
     let env = M.add side_effects_key (node, [node]) env in
+    let env = M.add write_side_effects_key (node, [node]) env in
     let env = search_and_add node x env in
     (* handle side effects *)
     let env = search_and_add_multi node env b in
@@ -248,17 +275,22 @@ and gen_graph node exp env toplevels next =
     let deps = find_dependencies side_effects_key env in
     add_multi node env deps;
     let env = M.add side_effects_key (node, [node]) env in
+    let env = M.add write_side_effects_key (node, [node]) env in
     let env = search_and_add_multi node env b in
     search_and_add_multi node env c
   ) in
-  (* make last *)
+  (* ifが来ると後続の命令の如何にかかわらず、グラフ構築を打ち切る
+   * よって、このifは内部に含まれる依存関係のある変数の関係から、
+   * 動かしてはいけない。よって、最後に来るように依存関係を追加する *)
+  (* ここは、ちゃんとifの中身を解析するようにすれば、
+   * もう少し良くできるかもしれない *)
   (match exp with
   | IfEq(_) | IfLE(_) | IfGE(_) | IfFEq(_) | IfFLE(_) ->
     make_last node toplevels;
   | _ -> ());
 
   let toplevels =
-    (* 依存関係0 *)
+    (* 依存関係0。この場合toplevelになる *)
     if List.length !(node.parents) = 0 then
       node:: toplevels
     else
@@ -271,6 +303,7 @@ and gen_graph node exp env toplevels next =
     match next with
     | Ans(_) -> (env, toplevels, next)
     | Let(_) -> tot next env toplevels
+(* scheduling 関数(これはlatency特化してしまっていて注意)*)
 and find_minimum toplevels mn node rem = match toplevels with
   | [] -> (node, rem)
   | x::xs ->
@@ -289,12 +322,13 @@ and find_maximum' toplevels mx node rem = match toplevels with
   | [] -> (node, rem)
   | x::xs ->
     let (mx, node, rem) =
-      if (not !(x.last)) && !(x.score) > mx then (!(x.score), x, node::rem) else (mx, node, x::rem) in
+      if !(x.score) > mx then (!(x.score), x, node::rem) else (mx, node, x::rem) in
     find_maximum' xs mx node rem
 and find_maximum toplevels = match toplevels with
   | [] -> None
   | x::xs ->
       Some(find_maximum' xs !(x.score) x [])
+(* レイテンシに関してスケジューリングを行う *)
 and latency_sched env toplevels cont =  match toplevels with
   | [] -> cont
   | x::xs ->
@@ -323,6 +357,7 @@ and latency_sched env toplevels cont =  match toplevels with
     let cont = schedule env toplevels cont in
     let ((id, t), exp) = !(node.exp) in
     Let((id, t), exp, cont)
+(* リソースに関するスケジューリングを行う *)
 and resource_sched env toplevels cont = match find_maximum toplevels with
   | None -> cont
   | Some(node, toplevels) ->
@@ -340,6 +375,7 @@ and resource_sched env toplevels cont = match find_maximum toplevels with
     let cont = schedule env toplevels cont in
     let ((id, t), exp) = !(node.exp) in
     Let((id, t), exp, cont)
+(* 単純なラッパ *)
 and schedule env toplevels cont =
   resource_sched env toplevels cont
 let rec f' fundefs result = match fundefs with
@@ -352,6 +388,7 @@ let rec f' fundefs result = match fundefs with
                 ret=x.ret}
     in
     f' xs (fundef::result)
+(* 外から見える関数 *)
 let f prog =
   let Prog(l, fundef, main) = prog in
   let main = g main in
