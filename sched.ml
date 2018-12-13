@@ -42,7 +42,8 @@ let rec make_last node toplevels = match toplevels with
   | [] -> ()
   | x::xs ->
     let rec dfs n = match !(n.child) with
-      | [] -> n.child := [node]; node.parents := n :: (!(node.parents))
+      | [] when n.id <> node.id -> n.child := [node]; node.parents := n :: (!(node.parents))
+      | [] -> ()
       | l ->
         let rec loop children = match children with
           | [] -> ()
@@ -250,6 +251,12 @@ and gen_graph node exp env toplevels next =
     let env = search_and_add_multi node env b in
     search_and_add_multi node env c
   ) in
+  (* make last *)
+  (match exp with
+  | IfEq(_) | IfLE(_) | IfGE(_) | IfFEq(_) | IfFLE(_) ->
+    make_last node toplevels;
+  | _ -> ());
+
   let toplevels =
     (* 依存関係0 *)
     if List.length !(node.parents) = 0 then
@@ -259,7 +266,6 @@ and gen_graph node exp env toplevels next =
   in
   match exp with
   | IfEq(_) | IfLE(_) | IfGE(_) | IfFEq(_) | IfFLE(_) ->
-    make_last node toplevels;
     (env, toplevels, next)
   | _ ->
     match next with
@@ -287,12 +293,8 @@ and find_maximum' toplevels mx node rem = match toplevels with
     find_maximum' xs mx node rem
 and find_maximum toplevels = match toplevels with
   | [] -> None
-  | [x] -> Some(x, [])
-  | x::y::xs ->
-    if !(x.last) then
-      Some(find_maximum' (y::xs) !(x.score) x [])
-    else
-      Some(find_maximum' (x::xs) !(y.score) y [])
+  | x::xs ->
+      Some(find_maximum' xs !(x.score) x [])
 and latency_sched env toplevels cont =  match toplevels with
   | [] -> cont
   | x::xs ->
