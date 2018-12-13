@@ -108,7 +108,13 @@ and gen_graph node exp env toplevels next =
     add_depenency node side_effects_key env
   | Mv(x) | Neg (x) | FMv(x) | FNeg(x) | FSqrt(x) | Restore(x) ->
     search_and_add node x env
-  | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | Sll(x, y)
+  | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | Sll(x, y) ->
+    let env = search_and_add node x env in
+    (match y with
+    | V(y') ->
+      search_and_add node y' env
+    | C(_) ->
+      env)
   | Lw(x, y) | Lfd(x, y) ->
     let env = add_depenency node side_effects_key env in
     let env = search_and_add node x env in
