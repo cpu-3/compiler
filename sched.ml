@@ -2,11 +2,18 @@ open Asm
 
 type ty = (Id.t * Type.t) * exp
 
+let print_ty ((i, _), exp) =
+  Printf.printf "let %s = " i;
+  print_exp exp
+
+let id_source = ref 0
+let gen_id () = id_source := !id_source + 1; !id_source
 type node = {child: node list ref;
              parents: node list ref;
              score: int ref;
              subscore: int ref;
              count: int ref;
+             id: int;
              exp: ty ref}
 
 let gen_node exp = {
@@ -15,11 +22,42 @@ let gen_node exp = {
   parents=ref [];
   score=ref 0;
   subscore=ref 0;
+  id=gen_id ();
   exp=ref exp}
+
+module S =
+  Set.Make
+    (struct
+      type t = int
+      let compare = compare
+    end)
+include S
 
 (* 副作用に使うkey *)
 let side_effects_key= "!side_effects!"
 
+let rec print_graph toplevels s = match toplevels with
+  | [] -> s
+  | x::xs ->
+    let s =
+    if not (S.mem x.id s) then
+      (Printf.printf "node%d[label=\"" x.id;
+       print_ty !(x.exp);
+       Printf.printf "\"];\n";
+       let s = S.add x.id s in
+       let rec loop l s = match l with
+         | [] -> s
+         | y::ys ->
+           let s = print_graph (y::toplevels) s in
+           Printf.printf "node%d -> node%d;\n" x.id y.id;
+           loop ys s
+       in
+       loop !(x.child) s
+      )
+    else
+      s
+    in
+    print_graph xs s
 let rec g cmds' =
   match cmds' with
   | Ans e ->
@@ -48,6 +86,7 @@ let rec g cmds' =
     )
   | Let(_) ->
     let (env, toplevels, cmds) = tot cmds' M.empty [] in
+    let _ = print_graph toplevels S.empty in
     let cont = g cmds in
     schedule env toplevels cont
 and find_dependencies x env =
@@ -69,19 +108,23 @@ and tot cmds env toplevels = match cmds with
       |Not_found -> ());
       (* 次に、レジスタが書き換わるので、環境の
        * idのnodeをリセット *)
-      let env = M.add id (node, []) env in
+      let env = M.add id (node, [node]) env in
       gen_graph node e env toplevels cmds
     | Ans e ->
       (env, toplevels, cmds)
 and search_and_add node x env =
   (* 見つからなければ現在見ているまとまりの中には
    * 依存関係がない、よってtoplevel *)
-  try
-    let (r, deps) = M.find x env in
-    add_multi node env [r];
-    M.add x (r, node::deps) env
-  with
-  |Not_found -> env
+  let ((id, _), _) = !(node.exp) in
+  if id = x then
+    env
+  else
+    (try
+      let (r, deps) = M.find x env in
+      add_multi node env [r];
+      M.add x (r, node::deps) env
+    with
+    |Not_found -> env)
 and add_depenency node x env =
   try
     let (r, deps) = M.find x env in
@@ -106,7 +149,10 @@ and gen_graph node exp env toplevels next =
     env
   | FLi(_) ->
     add_depenency node side_effects_key env
-  | Mv(x) | Neg (x) | FMv(x) | FNeg(x) | FSqrt(x) | Restore(x) ->
+  | Mv(x) | Neg (x) | FMv(x) | FNeg(x) | FSqrt(x) ->
+    search_and_add node x env
+  | Restore(x) ->
+    let env = add_depenency node side_effects_key env in
     search_and_add node x env
   | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | Sll(x, y) ->
     let env = search_and_add node x env in
@@ -123,7 +169,13 @@ and gen_graph node exp env toplevels next =
       search_and_add node y' env
     | C(_) ->
       env)
-  | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Save(x, y) ->
+  | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) ->
+    let env = search_and_add node x env in
+    search_and_add node y env
+  | Save(x, y) ->
+    let deps = find_dependencies side_effects_key env in
+    add_multi node env deps;
+    let env = M.add side_effects_key (node, [node]) env in
     let env = search_and_add node x env in
     search_and_add node y env
   | Sw(x, y, z) | Stfd(x, y, z) ->
@@ -170,7 +222,7 @@ and gen_graph node exp env toplevels next =
     let deps = find_dependencies side_effects_key env in
     add_multi node env deps;
     let env = M.add side_effects_key (node, [node]) env in
-    let _ = search_and_add node x env in
+    let env = search_and_add node x env in
     (* handle side effects *)
     let env = search_and_add_multi node env b in
     search_and_add_multi node env c
@@ -182,8 +234,6 @@ and gen_graph node exp env toplevels next =
     search_and_add_multi node env c
   ) in
   let toplevels =
-    print_exp exp;
-    print_newline ();
     (* 依存関係0 *)
     if List.length !(node.parents) = 0 then
       node:: toplevels
