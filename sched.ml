@@ -17,9 +17,8 @@ let gen_node exp = {
   subscore=ref 0;
   exp=ref exp}
 
-(* 副作用に使うkeyのprefix *)
-let prefix = "!side_effects!"
-let side_effects = ref []
+(* 副作用に使うkey *)
+let side_effects_key= "!side_effects!"
 
 let rec g cmds' =
   match cmds' with
@@ -51,10 +50,10 @@ let rec g cmds' =
     let (env, toplevels, cmds) = tot cmds' M.empty [] in
     let cont = g cmds in
     schedule env toplevels cont
-and find x env =
+and find_dependencies x env =
   try
-    let (r, _) = M.find x env in
-    r
+    let (_, l) = M.find x env in
+    l
   with
   |Not_found -> []
 and tot cmds env toplevels = match cmds with
@@ -83,6 +82,13 @@ and search_and_add node x env =
     M.add x (r, node::deps) env
   with
   |Not_found -> env
+and add_depenency node x env =
+  try
+    let (r, deps) = M.find x env in
+    M.add x (r, node::deps) env
+  with
+  |Not_found ->
+    M.add x (node, [node]) env
 and search_and_add_multi node env l = match l with
   | [] -> env
   | x::xs ->
@@ -96,12 +102,15 @@ and add_multi node env l = match l with
     add_multi node env xs
 and gen_graph node exp env toplevels next =
   let env = (match exp with
-  | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) ->
+  | Nop | Li(_) | SetL(_) | Comment(_) ->
     env
+  | FLi(_) ->
+    add_depenency node side_effects_key env
   | Mv(x) | Neg (x) | FMv(x) | FNeg(x) | FSqrt(x) | Restore(x) ->
     search_and_add node x env
   | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | Sll(x, y)
   | Lw(x, y) | Lfd(x, y) ->
+    let env = add_depenency node side_effects_key env in
     let env = search_and_add node x env in
     (match y with
     | V(y') ->
@@ -112,6 +121,9 @@ and gen_graph node exp env toplevels next =
     let env = search_and_add node x env in
     search_and_add node y env
   | Sw(x, y, z) | Stfd(x, y, z) ->
+    let deps = find_dependencies side_effects_key env in
+    add_multi node env deps;
+    let env = M.add side_effects_key (node, [node]) env in
     let env = search_and_add node x env in
     let env = search_and_add node y env in
     (match z with
@@ -149,11 +161,17 @@ and gen_graph node exp env toplevels next =
     node.exp := ((id, t), exp);
     env
   | CallCls (x, b, c) ->
+    let deps = find_dependencies side_effects_key env in
+    add_multi node env deps;
+    let env = M.add side_effects_key (node, [node]) env in
     let _ = search_and_add node x env in
     (* handle side effects *)
     let env = search_and_add_multi node env b in
     search_and_add_multi node env c
   | CallDir (_, b, c) ->
+    let deps = find_dependencies side_effects_key env in
+    add_multi node env deps;
+    let env = M.add side_effects_key (node, [node]) env in
     let env = search_and_add_multi node env b in
     search_and_add_multi node env c
   ) in
