@@ -16,7 +16,10 @@ let locate x =
     | y :: zs when x = y -> 0 :: List.map succ (loc zs)
     | y :: zs -> List.map succ (loc zs) in
   loc !stackmap
-let offset x = 4 * List.hd (locate x)
+let offset x =
+  match (locate x) with
+  | [] -> Printf.eprintf "failed to locate %s\n" x; failwith "error"
+  | x::_ -> 4 * x
 let stacksize () = (List.length !stackmap) * 4
 
 let reg r =
@@ -56,7 +59,7 @@ let rec g buf = function (* 命令列のアセンブリ生成 (caml2html: emit_g
   | dest, Let((x, t), exp, e) ->
       g' buf (NonTail(x), exp);
       g buf (dest, e)
-and g' buf = function (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
+and g' buf (a, b) = print_exp b; match (a, b) with(* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
   | NonTail(_), Nop -> ()
   | NonTail(x), Li(i) -> Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
