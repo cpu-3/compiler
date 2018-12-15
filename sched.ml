@@ -180,10 +180,15 @@ and gen_graph node exp env toplevels next =
   | Mv(x) | Neg (x) | FMv(x) | FNeg(x) | FSqrt(x) ->
     search_and_add node x env
   | ReadHp ->
+    (match M.find_opt write_side_effects_key env with
+    | Some(n, _) -> add_multi node env [n]
+    | None -> ());
     add_depenency node side_effects_key env
   | AddHp(x) ->
     let deps = find_dependencies side_effects_key env in
     add_multi node env deps;
+    let env = M.add side_effects_key (node, [node]) env in
+    let env = M.add write_side_effects_key (node, [node]) env in
     (match x with
     | V(y') ->
       search_and_add node y' env

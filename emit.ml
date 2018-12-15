@@ -59,7 +59,7 @@ let rec g buf = function (* 命令列のアセンブリ生成 (caml2html: emit_g
   | dest, Let((x, t), exp, e) ->
       g' buf (NonTail(x), exp);
       g buf (dest, e)
-and g' buf (a, b) = print_exp b; match (a, b) with(* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
+and g' buf (a, b) = match (a, b) with(* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
   | NonTail(_), Nop -> ()
   | NonTail(x), Li(i) -> Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
@@ -252,9 +252,9 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   let buffer = Buffer.create 128 in
   stackset := S.empty;
   stackmap := [];
-  print_newline ();
+  (*print_newline ();
   print_string "Asm print_t: ";
-  Asm.print_t e;
+  Asm.print_t e;*)
   g buffer (Tail, e);
   let n = stacksize () in
   let buffer' = Buffer.create 128 in

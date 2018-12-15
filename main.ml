@@ -28,8 +28,8 @@ let lexbuf outchan nml = (* バッファをコンパイルしてチャンネル�
   let _ = Asm.print_prog tmp in
   let _ = print_string "\n--------------------------------------\n" in
   let prog = RegAlloc.f tmp in
-  print_string "\nAsm.Prog: ";
-  Asm.print_prog prog;
+  (*print_string "\nAsm.Prog: ";
+  Asm.print_prog prog;*)
   Emit.f outchan prog
 
 let lexbuf' outchan buf = lexbuf outchan (KNormal.f (Typing.f (Parser.exp Lexer.token buf)))
@@ -42,12 +42,12 @@ let file f = (* ファイルをコンパイルしてファイルに出力する 
   let stx = Parser.exp Lexer.token (Lexing.from_channel inchan) in
   let nml = KNormal.f (Typing.f stx) in (* syntax.t -> syntax.t -> knormal.t *)
   try
-    print_string "Syntax: "; (* Syntax.tの中間結果 *)
+    (*print_string "Syntax: "; (* Syntax.tの中間結果 *)
     Syntax.print_t stx;
     print_newline ();
     print_string "KNormal: "; (* KNormal.tの中間結果 *)
     KNormal.print_t nml;
-    print_newline ();
+    print_newline ();*)
     lexbuf outchan nml;
     close_in inchan;
     close_out outchan;

@@ -105,7 +105,7 @@ let rec g env = function (* 式の仮想マシンコード生成 (caml2html: vir
           (fun x offset store -> seq(Stfd(x, y, C(offset)), store))
           (fun x _ offset store -> seq(Sw(x, y, C(offset)), store))  in
       Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), ReadHp,
-          Let((reg_hp, Type.Int), Add(reg_hp, C(align offset)),
+          Let((reg_hp, Type.Int), AddHp(C(align offset)),
               store))
   | Closure.LetTuple(xts, y, e2) ->
       let s = Closure.fv e2 in
