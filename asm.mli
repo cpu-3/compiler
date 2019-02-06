@@ -23,6 +23,8 @@ and exp =
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
   | FSqrt of Id.t
+  | FToI of Id.t
+  | IToF of Id.t
   | Lfd of Id.t * id_or_imm
   | Stfd of Id.t * Id.t * id_or_imm
   | Comment of string
@@ -43,8 +45,7 @@ type prog = Prog of (Id.l * float) list * fundef list * t
 val print_t : t -> unit
 val print_prog : prog -> unit
 
-val fletd : Id.t * exp * t -> t (* shorthand of Let for float *)
-val seq : exp * t -> t (* shorthand of Let for unit *)
+val fletd : Id.t * exp * t -> t (* shorthand of Let for float *) val seq : exp * t -> t (* shorthand of Let for unit *)
 
 val regs : Id.t array
 val fregs : Id.t array

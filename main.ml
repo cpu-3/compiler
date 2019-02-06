@@ -16,12 +16,11 @@ let lexbuf outchan nml = (* バッファをコンパイルしてチャンネル�
     (RegAlloc.f
        (Simm.f
          (Virtual.f        (* closure.prog -> asm.prog *)
-            (Typecheck.f
               (Closure.f     (* knormal.t -> closure.prog *)
                (let a = iter !limit
                    (let b = Alpha.f nml in
                    print_string "KNormal after alpha: "; KNormal.print_t b; print_newline (); b) in
-               print_string "KNormal after iter: "; KNormal.print_t a; print_newline (); a)))))) in (* knormal.t -> knormal.t *)
+               print_string "KNormal after iter: "; KNormal.print_t a; print_newline (); a))))) in (* knormal.t -> knormal.t *)
   print_string "\nAsm.Prog: ";
   Asm.print_prog prog;
   Emit.f outchan prog
