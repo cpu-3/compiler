@@ -1,12 +1,12 @@
 # print_char
 min_caml_print_char:
-  li s11, 65540
+  li s11, 131076
   sb a0, 0(s11)
   ret
 
 # input_char
 min_caml_input_char:
-  li s11, 65536
+  li s11, 131072
   lb a0, 0(s11)
   ret
 
