@@ -51,12 +51,12 @@ let rec range n m =
                   else []
 
 type dest = Tail | NonTail of Id.t (* 末尾かどうかを表すデータ型 (caml2html: emit_dest) *)
-let rec g buf = function (* 命令列のアセンブリ生成 (caml2html: emit_g) *)
-  | dest, Ans(exp) -> g' buf (dest, exp)
+let rec g buf b_cont_opt = function (* 命令列のアセンブリ生成 (caml2html: emit_g) *)
+  | dest, Ans(exp) -> g' buf b_cont_opt (dest, exp)
   | dest, Let((x, t), exp, e) ->
-      g' buf (NonTail(x), exp);
-      g buf (dest, e)
-and g' buf = function (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
+      g' buf None (NonTail(x), exp);
+      g buf b_cont_opt (dest, e)
+and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html: emit_gprime) *)
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
   | NonTail(_), Nop -> ()
   | NonTail(x), Li(i) -> Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
@@ -115,22 +115,22 @@ and g' buf = function (* 各命令のアセンブリ生成 (caml2html: emit_gpri
       Printf.bprintf buf "\tflw\t%s, %d(%s)\n" (reg x) (offset y) (reg reg_sp)
   (* 末尾だったら計算結果を第一レジスタにセットしてリターン (caml2html: emit_tailret) *)
   | Tail, (Nop | Sw _ | Stfd _ | Comment _ | Save _ as exp) ->
-      g' buf (NonTail(Id.gentmp Type.Unit), exp);
+      g' buf b_cont_opt (NonTail(Id.gentmp Type.Unit), exp);
       Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tret\n"
   | Tail, (Li _ | SetL _ | Mv _ | Neg _ | Add _ | Sub _ | Mul _ | Div _ | Sll _ | Lw _ as exp) ->
-      g' buf (NonTail(regs.(0)), exp);
+      g' buf b_cont_opt (NonTail(regs.(0)), exp);
       Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tret\n"
   | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FSqrt _
           | Lfd _ | FToI _ | IToF _ as exp) ->
-      g' buf (NonTail(fregs.(0)), exp);
+      g' buf b_cont_opt (NonTail(fregs.(0)), exp);
       Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tret\n"
   | Tail, (Restore(x) as exp) ->
       (match locate x with
-      | [i] -> g' buf (NonTail(regs.(0)), exp)
-      | [i; j] when i + 1 = j -> g' buf (NonTail(fregs.(0)), exp)
+      | [i] -> g' buf b_cont_opt (NonTail(regs.(0)), exp)
+      | [i; j] when i + 1 = j -> g' buf b_cont_opt (NonTail(fregs.(0)), exp)
       | _ -> assert false);
       Printf.bprintf buf "$(addsp)";
       Printf.bprintf buf "\tret\n"
@@ -154,24 +154,24 @@ and g' buf = function (* 各命令のアセンブリ生成 (caml2html: emit_gpri
   | Tail, IfFLE(x, y, e1, e2) ->
       g'_tail_if buf e1 e2 "fgt" "fle.s" (reg x) (reg y)
   | NonTail(z), IfEq(x, V(y), e1, e2) ->
-      g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg y) b_cont_opt
   | NonTail(z), IfEq(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg reg_tmp)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfLE(x, V(y), e1, e2) ->
-      g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg y) b_cont_opt
   | NonTail(z), IfLE(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg reg_tmp)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfGE(x, V(y), e1, e2) ->
-      g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg y) b_cont_opt
   | NonTail(z), IfGE(x, C(y), e1, e2) ->
       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
-      g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg reg_tmp)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfFEq(x, y, e1, e2) ->
-      g'_non_tail_if buf (NonTail(z)) e1 e2 "fne" "feq.s" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "fne" "feq.s" (reg x) (reg y) b_cont_opt
   | NonTail(z), IfFLE(x, y, e1, e2) ->
-      g'_non_tail_if buf (NonTail(z)) e1 e2 "fgt" "fle.s" (reg x) (reg y)
+      g'_non_tail_if buf (NonTail(z)) e1 e2 "fgt" "fle.s" (reg x) (reg y) b_cont_opt
   (* 関数呼び出しの仮想命令の実装 (caml2html: emit_call) *)
   | Tail, CallCls(x, ys, zs) -> (* 末尾呼び出し (caml2html: emit_tailcall) *)
       g'_args buf [(x, reg_cl)] ys zs;
@@ -205,27 +205,29 @@ and g'_tail_if buf e1 e2 b bn rx ry =
           else Printf.sprintf "\t%s\t%s, %s, %s\n" bn rx ry b_else in
   Printf.bprintf buf "%s" s;
   let stackset_back = !stackset in
-  g buf (Tail, e1);
+  g buf None (Tail, e1);
   Printf.bprintf buf "%s:\n" b_else;
   stackset := stackset_back;
-  g buf (Tail, e2)
-and g'_non_tail_if buf dest e1 e2 b bn rx ry =
+  g buf None (Tail, e2)
+and g'_non_tail_if buf dest e1 e2 b bn rx ry b_cont_opt =
   let b_else = if bn = "fle.s" || bn = "feq.s"
                   then Id.genid (bn ^ "_else") else Id.genid (b ^ "_else") in
-  let b_cont = if bn = "fle.s" || bn = "feq.s"
-                  then Id.genid (bn ^ "_cont") else Id.genid (b ^ "_cont") in
+  let (b_cont, bl) = match b_cont_opt with
+                | Some(b_cont') -> (b_cont', false)
+                | None -> if bn = "fle.s" || bn = "feq.s"
+                            then (Id.genid (bn ^ "_cont"), true) else (Id.genid (b ^ "_cont"), true) in
   let s = if bn = "fle.s" || bn = "feq.s" then
     (Printf.sprintf "\t%s\t%s, %s, %s\n\tbeq\t%s, zero, %s\n" bn (reg reg_tmp) rx ry (reg reg_tmp) b_else)
           else Printf.sprintf "\t%s\t%s, %s, %s\n" bn rx ry b_else in
   Printf.bprintf buf "%s" s;
   let stackset_back = !stackset in
-  g buf (dest, e1);
+  g buf (Some(b_cont)) (dest, e1);
   let stackset1 = !stackset in
   Printf.bprintf buf "\tj\t%s\n" b_cont;
   Printf.bprintf buf "%s:\n" b_else;
   stackset := stackset_back;
-  g buf (dest, e2);
-  Printf.bprintf buf "%s:\n" b_cont;
+  g buf (Some(b_cont)) (dest, e2);
+  if bl then Printf.bprintf buf "%s:\n" b_cont else ();
   let stackset2 = !stackset in
   stackset := S.inter stackset1 stackset2
 and g'_args buf x_reg_cl ys zs =
@@ -254,7 +256,7 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   print_newline ();
   print_string "Asm print_t: ";
   Asm.print_t e;
-  g buffer (Tail, e);
+  g buffer None (Tail, e);
   let n = stacksize () in
   let buffer' = Buffer.create 128 in
   if n = 0 then
@@ -277,7 +279,7 @@ let f oc (Prog(data, fundefs, e)) =
   stackset := S.empty;
   stackmap := [];
   let buffer = Buffer.create 128 in
-  g buffer (NonTail("x0"), e);
+  g buffer None (NonTail("x0"), e);
   let n = stacksize () in
   Printf.fprintf oc "_min_caml_start: # main entry point\n";
   if n = 0 then ()
