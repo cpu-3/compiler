@@ -9,6 +9,7 @@ and exp =
   | SetL of Id.l
   | Mv of Id.t
   | Neg of Id.t
+  | Xor of Id.t * Id.t
   | Add of Id.t * id_or_imm
   | Sub of Id.t * id_or_imm
   | Mul of Id.t * id_or_imm

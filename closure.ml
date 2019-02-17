@@ -4,6 +4,7 @@ type t = (* クロージャ変換後の式 (caml2html: closure_t) *)
   | Int of int
   | Float of float
   | Neg of Id.t
+  | Xor of Id.t * Id.t
   | Add of Id.t * Id.t
   | Sub of Id.t * Id.t
   | Mul of Id.t * Id.t
@@ -38,7 +39,7 @@ type prog = Prog of fundef list * t
 let rec fv = function
   | Unit | Int(_) | Float(_) | ExtArray(_) | ExtTuple(_) -> S.empty
   | Neg(x) | FNeg(x) | FSqrt(x) | FToI(x) | IToF(x) -> S.singleton x
-  | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2)| IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -55,6 +56,7 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
   | KNormal.Int(i) -> Int(i)
   | KNormal.Float(d) -> Float(d)
   | KNormal.Neg(x) -> Neg(x)
+  | KNormal.Xor(x, y) -> Xor(x, y)
   | KNormal.Add(x, y) -> Add(x, y)
   | KNormal.Sub(x, y) -> Sub(x, y)
   | KNormal.Mul(x, y) -> Mul(x, y)
@@ -127,6 +129,7 @@ let rec print_t = function
   | Float x -> (print_string "float ";
                 print_float x)
   | Neg s -> print_string ("neg " ^ s ^ " ")
+  | Xor (s1, s2) -> print_string ("xor (" ^ s1 ^ " " ^ s2 ^ ") ");
   | Add (s1, s2) -> print_string (s1 ^ " + " ^ s2 ^ " ");
   | Sub (s1, s2) -> print_string (s1 ^ " - " ^ s2 ^ " ");
   | Mul (s1, s2) -> print_string (s1 ^ " * " ^ s2 ^ " ");

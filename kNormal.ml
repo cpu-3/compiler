@@ -5,6 +5,7 @@ type t = (* K正規化後の式 (caml2html: knormal_t) *)
   | Int of int
   | Float of float
   | Neg of Id.t
+  | Xor of Id.t * Id.t
   | Add of Id.t * Id.t
   | Sub of Id.t * Id.t
   | Mul of Id.t * Id.t
@@ -32,7 +33,7 @@ and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 let rec fv = function (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) | ExtTuple(_) -> S.empty
   | Neg(x) | FNeg(x) -> S.singleton x
-  | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -148,6 +149,10 @@ let rec g env expr tplty = (* K正規化ルーチン本体 (caml2html: knormal_g
                   (fun x -> bind (xs @ [x]) e2s) in
           bind [] e2s (* left-to-right evaluation *)
       | _ -> assert false)
+  | Syntax.App(Syntax.Var("xor"), [e1;e2]) ->
+      insert_let (g env e1 tplty)
+        (fun x -> insert_let (g env e2 tplty)
+            (fun y -> Xor(x, y), Type.Int))
   | Syntax.App(e1, e2s) ->
       (match g env e1 tplty with
       | _, Type.Fun(_, t) as g_e1 ->
@@ -208,6 +213,7 @@ let rec print_t nml =
                   print_float x)
     | Neg s -> print_string ("NEG " ^ s)
     | FNeg s -> print_string ("FNEG " ^ s)
+    | Xor (s1, s2) -> print_string ("XOR (" ^ s1 ^ ", " ^ s2 ^ ")")
     | Add (s1, s2) -> print_string (s1 ^ " + " ^ s2)
     | Sub (s1, s2) -> print_string (s1 ^ " - " ^ s2)
     | Mul (s1, s2) -> print_string (s1 ^ " * " ^ s2)
