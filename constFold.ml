@@ -1,5 +1,4 @@
 open KNormal
-open List
 
 let memi x env =
   try (match M.find x env with Int(_) -> true | _ -> false)
@@ -11,21 +10,9 @@ let memt x env =
   try (match M.find x env with Tuple(_) -> true | _ -> false)
   with Not_found -> false
 
-let rec tuplesize x =
-  match x with
-  | Type.Tuple xs -> fold_right (+) (map tuplesize xs) 0
-  | _ -> 1
-
 let findi x env = (match M.find x env with Int(i) -> i | _ -> raise Not_found)
 let findf x env = (match M.find x env with Float(d) -> d | _ -> raise Not_found)
-let findt x env = (match M.find x env with
-                   | Tuple(ys, Type.Tuple(xs)) ->
-                       let l = map tuplesize xs in
-                       let size = fold_right (+) l 0 in
-                       let indexlist = fold_right (fun i (a::r) -> (a-i)::a::r) l [size] in
-                       map (fun i -> nth ys i) (rev (tl (rev indexlist)))
-                   | Tuple(ys, _) -> ys
-                   | _ -> raise Not_found)
+let findt x env = (match M.find x env with Tuple(ys) -> ys | _ -> raise Not_found)
 
 let rec g env = function (* 定数畳み込みルーチン本体 (caml2html: constfold_g) *)
   | Var(x) when memi x env -> Int(findi x env)
@@ -52,7 +39,7 @@ let rec g env = function (* 定数畳み込みルーチン本体 (caml2html: con
   | LetRec({ name = x; args = ys; body = e1 }, e2) ->
       LetRec({ name = x; args = ys; body = g env e1 }, g env e2)
   | LetTuple(xts, y, e) when memt y env ->
-      fold_left2
+      List.fold_left2
         (fun e' xt z -> Let(xt, Var(z), e'))
         (g env e)
         xts
