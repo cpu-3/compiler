@@ -112,8 +112,8 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
   | KNormal.ExtFunApp(x, ys) ->
     (*if x = "int_of_float" then FToI(List.hd ys)
     else if x = "float_of_int" then IToF(List.hd ys)
-    else if x = "sqrt" then FSqrt(List.hd ys)
-    else *)if x = "fneg" then FNeg(List.hd ys)
+    else *)if x = "sqrt" then FSqrt(List.hd ys)
+    else if x = "fneg" then FNeg(List.hd ys)
     else AppDir(Id.L("min_caml_" ^ x), ys)
 
 let f e =
