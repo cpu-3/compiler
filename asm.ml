@@ -25,6 +25,7 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | Fless of Id.t * Id.t
   | FSqrt of Id.t
   | FToI of Id.t
   | IToF of Id.t
@@ -78,7 +79,7 @@ let rec fv_exp = function
   | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | FToI(x) | IToF(x) | FSqrt(x) | Save(x, _) -> [x]
   | Add(x, y') | Sub(x, y') | Mul(x, y') | Div(x, y') | Sll(x, y') | Lfd(x, y') | Lw(x, y') -> x :: fv_id_or_imm y'
   | Sw(x, y, z') | Stfd(x, y, z') -> x :: y :: fv_id_or_imm z'
-  | Xor(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) -> [x; y]
+  | Xor(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Fless(x, y) -> [x; y]
   | IfEq(x, y', e1, e2) | IfLE(x, y', e1, e2) | IfGE(x, y', e1, e2) ->  x :: fv_id_or_imm y' @ remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
   | IfFEq(x, y, e1, e2) | IfFLE(x, y, e1, e2) -> x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
   | CallCls(x, ys, zs) -> x :: ys @ zs
@@ -86,7 +87,7 @@ let rec fv_exp = function
 and fv = function
   | Ans(exp) -> fv_exp exp
   | Let((x, t), exp, e) ->
-      fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
+    fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
 let fv e = remove_and_uniq S.empty (fv e)
 
 let rec concat e1 xt e2 =
@@ -103,10 +104,10 @@ let print_id_or_imm = function
 let rec print_t = function
   | Ans(exp) -> print_string "ans "; print_exp exp
   | Let((s, _), exp, t) ->
-      (print_string ("let " ^ s ^ " = ");
-      print_exp exp;
-      print_string " in ";
-      print_t t;)
+    (print_string ("let " ^ s ^ " = ");
+     print_exp exp;
+     print_string " in ";
+     print_t t;)
 and print_exp = function
   | Nop -> print_string "nop"
   | Li(n) -> (print_string "li "; print_int n)
@@ -128,6 +129,7 @@ and print_exp = function
   | FSub(s1, s2) -> print_string ("fsub " ^ s1 ^ " " ^ s2 ^ " ")
   | FMul(s1, s2) -> print_string ("fmul " ^ s1 ^ " " ^ s2 ^ " ")
   | FDiv(s1, s2) -> print_string ("fdiv " ^ s1 ^ " " ^ s2 ^ " ")
+  | Fless(s1, s2) -> print_string ("fless " ^ s1 ^ " " ^ s2 ^ " ")
   | FSqrt(s1) -> print_string ("fsqrt " ^ s1 ^ " ")
   | FToI(s1) -> print_string ("ftoi " ^ s1 ^ " ")
   | IToF(s1) -> print_string ("itof " ^ s1 ^ " ")
@@ -154,44 +156,44 @@ and print_exp = function
                            print_string (" else ");
                            print_t t2; print_string " ")
   | IfFEq(s1, s2, t1, t2) -> (print_string ("ifeq " ^ s1 ^ " " ^ s2 ^ " ");
-                           print_string (" then ");
-                           print_t t1;
-                           print_string (" else ");
-                           print_t t2; print_string " ")
+                              print_string (" then ");
+                              print_t t1;
+                              print_string (" else ");
+                              print_t t2; print_string " ")
   | IfFLE(s1, s2, t1, t2) -> (print_string ("ifeq " ^ s1 ^ " " ^ s2 ^ " ");
-                           print_string (" then ");
-                           print_t t1;
-                           print_string (" else ");
-                           print_t t2; print_string " ")
+                              print_string (" then ");
+                              print_t t1;
+                              print_string (" else ");
+                              print_t t2; print_string " ")
   (* closure address, integer arguments, and float arguments *)
   | CallCls(s, ints, floats) ->
-      (print_string ("callcls " ^ s ^ " ints: ");
-       List.iter print_string ints;
-       print_string " floats: ";
-       List.iter print_string floats)
+    (print_string ("callcls " ^ s ^ " ints: ");
+     List.iter print_string ints;
+     print_string " floats: ";
+     List.iter print_string floats)
   | CallDir(Id.L(l), ints, floats) ->
-      (print_string ("calldir " ^ l ^ " ints: ");
-       List.iter print_string ints;
-       print_string " floats: ";
-       List.iter print_string floats)
+    (print_string ("calldir " ^ l ^ " ints: ");
+     List.iter print_string ints;
+     print_string " floats: ";
+     List.iter print_string floats)
   | Save(s1, s2) -> print_string ("save " ^ s1 ^ " " ^ s2)
   | Restore(s) -> print_string ("restore " ^ s)
 
 let print_prog (Prog(fls, topfs, e)) =
   (print_string "\n(name, float) =\n";
-  List.iter (fun (l, f) ->
-    let Id.L(l) = l in
-    print_string ("(" ^ l ^ " ");
-    print_float f;
-    print_string ") ";) fls;
-  print_string "\nfundef list =\n";
-  List.iter (fun fd ->
-    let Id.L(n) = fd.name in
-    print_string ("\tname: " ^ n ^ "\n\targs: (");
-    List.iter(fun x -> print_string(x ^ ",")) fd.args;
-    print_string (")\n\tbody: ");
-    print_t(fd.body);
-    print_string ("\n");) topfs;
-  print_string "\n";
-  print_t e)
+   List.iter (fun (l, f) ->
+       let Id.L(l) = l in
+       print_string ("(" ^ l ^ " ");
+       print_float f;
+       print_string ") ";) fls;
+   print_string "\nfundef list =\n";
+   List.iter (fun fd ->
+       let Id.L(n) = fd.name in
+       print_string ("\tname: " ^ n ^ "\n\targs: (");
+       List.iter(fun x -> print_string(x ^ ",")) fd.args;
+       print_string (")\n\tbody: ");
+       print_t(fd.body);
+       print_string ("\n");) topfs;
+   print_string "\n";
+   print_t e)
 

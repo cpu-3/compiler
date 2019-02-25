@@ -17,6 +17,7 @@ type t = (* クロージャ変換後の式 (caml2html: closure_t) *)
   | FSqrt of Id.t
   | FToI of Id.t
   | IToF of Id.t
+  | Fless of Id.t * Id.t
   | IfEq of Id.t * Id.t * t * t
   | IfLE of Id.t * Id.t * t * t
   | Let of (Id.t * Type.t) * t * t
@@ -39,7 +40,7 @@ type prog = Prog of fundef list * t
 let rec fv = function
   | Unit | Int(_) | Float(_) | ExtArray(_) | ExtTuple(_) -> S.empty
   | Neg(x) | FNeg(x) | FSqrt(x) | FToI(x) | IToF(x) -> S.singleton x
-  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Fless(x, y)-> S.of_list [x; y]
   | IfEq(x, y, e1, e2)| IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -71,37 +72,37 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
   | KNormal.Let((x, t), e1, e2) -> Let((x, t), g env known e1, g (M.add x t env) known e2)
   | KNormal.Var(x) -> Var(x)
   | KNormal.LetRec({ KNormal.name = (x, t); KNormal.args = yts; KNormal.body = e1 }, e2) -> (* 関数定義の場合 (caml2html: closure_letrec) *)
-      (* 関数定義let rec x y1 ... yn = e1 in e2の場合は、
-         xに自由変数がない(closureを介さずdirectに呼び出せる)
-         と仮定し、knownに追加してe1をクロージャ変換してみる *)
-      let toplevel_backup = !toplevel in
-      let env' = M.add x t env in
-      let known' = S.add x known in
-      let e1' = g (M.add_list yts env') known' e1 in
-      (* 本当に自由変数がなかったか、変換結果e1'を確認する *)
-      (* 注意: e1'にx自身が変数として出現する場合はclosureが必要!
-         (thanks to nuevo-namasute and azounoman; test/cls-bug2.ml参照) *)
-      let zs = S.diff (fv e1') (S.of_list (List.map fst yts)) in
-      let known', e1' =
-        if S.is_empty zs then known', e1' else
+    (* 関数定義let rec x y1 ... yn = e1 in e2の場合は、
+       xに自由変数がない(closureを介さずdirectに呼び出せる)
+       と仮定し、knownに追加してe1をクロージャ変換してみる *)
+    let toplevel_backup = !toplevel in
+    let env' = M.add x t env in
+    let known' = S.add x known in
+    let e1' = g (M.add_list yts env') known' e1 in
+    (* 本当に自由変数がなかったか、変換結果e1'を確認する *)
+    (* 注意: e1'にx自身が変数として出現する場合はclosureが必要!
+       (thanks to nuevo-namasute and azounoman; test/cls-bug2.ml参照) *)
+    let zs = S.diff (fv e1') (S.of_list (List.map fst yts)) in
+    let known', e1' =
+      if S.is_empty zs then known', e1' else
         (* 駄目だったら状態(toplevelの値)を戻して、クロージャ変換をやり直す *)
         (Format.eprintf "free variable(s) %s found in function %s@." (Id.pp_list (S.elements zs)) x;
          Format.eprintf "function %s cannot be directly applied in fact@." x;
          toplevel := toplevel_backup;
          let e1' = g (M.add_list yts env') known e1 in
          known, e1') in
-      let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* 自由変数のリスト *)
-      let zts = List.map (fun z -> (z, M.find z env')) zs in (* ここで自由変数zの型を引くために引数envが必要 *)
-      toplevel := { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel; (* トップレベル関数を追加 *)
-      let e2' = g env' known' e2 in
-      if S.mem x (fv e2') then (* xが変数としてe2'に出現するか *)
-        MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* 出現していたら削除しない *)
-      else
-        (Format.eprintf "eliminating closure(s) %s@." x;
-         e2') (* 出現しなければMakeClsを削除 *)
+    let zs = S.elements (S.diff (fv e1') (S.add x (S.of_list (List.map fst yts)))) in (* 自由変数のリスト *)
+    let zts = List.map (fun z -> (z, M.find z env')) zs in (* ここで自由変数zの型を引くために引数envが必要 *)
+    toplevel := { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e1' } :: !toplevel; (* トップレベル関数を追加 *)
+    let e2' = g env' known' e2 in
+    if S.mem x (fv e2') then (* xが変数としてe2'に出現するか *)
+      MakeCls((x, t), { entry = Id.L(x); actual_fv = zs }, e2') (* 出現していたら削除しない *)
+    else
+      (Format.eprintf "eliminating closure(s) %s@." x;
+       e2') (* 出現しなければMakeClsを削除 *)
   | KNormal.App(x, ys) when S.mem x known -> (* 関数適用の場合 (caml2html: closure_app) *)
-      Format.eprintf "directly applying %s@." x;
-      AppDir(Id.L(x), ys)
+    Format.eprintf "directly applying %s@." x;
+    AppDir(Id.L(x), ys)
   | KNormal.App(f, xs) -> AppCls(f, xs)
   | KNormal.Tuple(xs) -> Tuple(xs)
   | KNormal.LetTuple(xts, y, e) -> LetTuple(xts, y, g (M.add_list xts env) known e)
@@ -111,11 +112,11 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
   | KNormal.ExtTuple(x) -> ExtTuple(Id.L(x))
   | KNormal.ExtFunApp(x, ys) ->
     (*if x = "int_of_float" then FToI(List.hd ys)
-    else if x = "float_of_int" then IToF(List.hd ys)
-    else *)if x = "sqrt" then FSqrt(List.hd ys)
+      else if x = "float_of_int" then IToF(List.hd ys)
+      else *)if x = "sqrt" then FSqrt(List.hd ys)
     else if x = "fneg" then FNeg(List.hd ys)
-        (* List.hdの順序おかしそう *)
-    (*else if x = "fless" then FLess(List.hd ys, Lis.thd(List.tl ys))*)
+    (* List.hdの順序おかしそう *)
+    else if x = "fless" then Fless(List.hd ys, List.hd(List.tl ys))
     else AppDir(Id.L("min_caml_" ^ x), ys)
 
 let f e =
@@ -141,21 +142,22 @@ let rec print_t = function
   | FSub (s1, s2) -> print_string (s1 ^ " -. " ^ s2 ^ " ");
   | FMul (s1, s2) -> print_string (s1 ^ " *. " ^ s2 ^ " ");
   | FDiv (s1, s2) -> print_string (s1 ^ " /. " ^ s2 ^ " ");
+  | Fless (s1, s2) -> print_string (s1 ^ " < " ^ s2 ^ " ");
   | FSqrt s -> print_string ("fsqrt " ^ s ^ " ");
   | FToI s -> print_string ("ftoi " ^ s ^ " ");
   | IToF s -> print_string ("itof " ^ s ^ " ");
   | IfEq (s1, s2, t1, t2) ->
-      (print_string ("ifeq " ^ s1 ^  " = "  ^ s2 ^ " then ");
-       print_t t1;
-       print_string " else ";
-       print_t t2;
-       print_string " ")
+    (print_string ("ifeq " ^ s1 ^  " = "  ^ s2 ^ " then ");
+     print_t t1;
+     print_string " else ";
+     print_t t2;
+     print_string " ")
   | IfLE (s1, s2, t1, t2) ->
-      (print_string ("ifle " ^ s1 ^  " <= "  ^ s2 ^ " then ");
-       print_t t1;
-       print_string " else ";
-       print_t t2;
-       print_string " ")
+    (print_string ("ifle " ^ s1 ^  " <= "  ^ s2 ^ " then ");
+     print_t t1;
+     print_string " else ";
+     print_t t2;
+     print_string " ")
   | Let ((s, t), t1, t2) -> (print_string ("let " ^ s ^ ": ");
                              Type.print_t t;
                              print_string " = ";
@@ -165,13 +167,13 @@ let rec print_t = function
                              print_string " ")
   | Var s -> print_string ("var " ^ s ^ " ")
   | MakeCls ((s, t), { entry = Id.L(x); actual_fv = xs }, t1) ->
-      (print_string ("makecls " ^ s ^ ": ");
-       Type.print_t t;
-       print_string (" entry = " ^ x ^ ", actual_fv = ");
-       List.iter (fun x' -> print_string (x' ^ ", ")) xs;
-       print_t t1;
-       print_string " "
-  )
+    (print_string ("makecls " ^ s ^ ": ");
+     Type.print_t t;
+     print_string (" entry = " ^ x ^ ", actual_fv = ");
+     List.iter (fun x' -> print_string (x' ^ ", ")) xs;
+     print_t t1;
+     print_string " "
+    )
   | AppCls (s1, ss) -> (print_string ("appcls (" ^ s1 ^ ", ");
                         List.iter (fun s' -> print_string (s' ^ ", ")) ss;
                         print_string ") ")
@@ -184,8 +186,8 @@ let rec print_t = function
   | LetTuple (s::ss, s1, t) -> (print_string ("lettuple (" ^ (fst s) ^ ": ");
                                 Type.print_t (snd s);
                                 List.iter (fun (s', t') ->
-                                  (print_string (", " ^ s' ^ ": ");
-                                   Type.print_t t')) ss;
+                                    (print_string (", " ^ s' ^ ": ");
+                                     Type.print_t t')) ss;
                                 print_string (") = " ^ s1 ^ " in ");
                                 print_t t;
                                 print_string " ")
@@ -199,14 +201,14 @@ let print_fundef { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e } 
   Type.print_t t;
   print_string "\nargs = ";
   List.iter (fun (x', t') ->
-    print_string (x' ^ ": ");
-    Type.print_t t';
-    print_string ", ") yts;
+      print_string (x' ^ ": ");
+      Type.print_t t';
+      print_string ", ") yts;
   print_string "\nformal_fv = ";
   List.iter (fun (x', t') ->
-    print_string (x' ^ ": ");
-    Type.print_t t';
-    print_string ", ") zts;
+      print_string (x' ^ ": ");
+      Type.print_t t';
+      print_string ", ") zts;
   print_string "\nbody = ";
   print_t e
 

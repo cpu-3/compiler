@@ -89,11 +89,6 @@ create_float_array_cont:
 	add hp, hp, 4
 	j create_float_array_loop
 
-
-min_caml_fless:
-	flt.s a0, f0, f1
-	ret
-
 fsqrt_24:	 # 1.500000
 	.word	1069547520
 fsqrt_23:	 # 0.500000
