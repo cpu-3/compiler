@@ -114,6 +114,8 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
     else if x = "float_of_int" then IToF(List.hd ys)
     else *)if x = "sqrt" then FSqrt(List.hd ys)
     else if x = "fneg" then FNeg(List.hd ys)
+        (* List.hdの順序おかしそう *)
+    (*else if x = "fless" then FLess(List.hd ys, Lis.thd(List.tl ys))*)
     else AppDir(Id.L("min_caml_" ^ x), ys)
 
 let f e =
