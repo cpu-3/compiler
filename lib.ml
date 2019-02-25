@@ -55,6 +55,7 @@ let rec reduction2pi x =
   in
   let p = inner x p in
   let rec inner x p =
+    let pi = 3.14159265358979 in
     if x >= (pi *. 2.0) then
       inner (if x >= p then x -. p else x) (p /. 2.0)
     else
@@ -67,21 +68,23 @@ let rec reverse flg = -1.0 *. flg in
 let rec add_sign flg x =
   flg *. x
 in
-let rec pow x n =
-  if n = 0 then
-    1.0
-  else
-    x *. (pow x (n - 1)) in
 
 let rec kernel_sin x =
-  x -. 0.16666668 *. (pow x 3)
-   +. 0.008332824 *. (pow x 5)
-   -. 0.00019587841  *. (pow x 7) in
+  let x2 = x *. x in
+  let x3 = x *. x2 in
+  let x5 = x3 *. x2 in
+  let x7 = x5 *. x2 in
+  x -. 0.16666668 *. x3
+   +. 0.008332824 *. x5
+   -. 0.00019587841  *. x7 in
 
 let rec kernel_cos x =
-  1.0 -. 0.5 *. (pow x 2)
-   +. 0.04166368 *. (pow x 4)
-   -. 0.0013695068 *. (pow x 6) in
+  let x2 = x *. x in
+  let x4 = x2 *. x2 in
+  let x6 = x4 *. x2 in
+  1.0 -. 0.5 *. x2
+   +. 0.04166368 *. x4
+   -. 0.0013695068 *. x6 in
 
 let rec fsin x =
   let pi = 3.14159265358979 in
@@ -89,8 +92,10 @@ let rec fsin x =
   let x = abs_float x in
   let x = reduction2pi x in
 
-  let flg = if x >= pi then reverse flg else flg in
-  let x = if x >= pi then x -. pi else x in
+  let b = x >= pi in
+
+  let flg = if b then reverse flg else flg in
+  let x = if b then x -. pi else x in
 
   let x = if x >= (pi /. 2.0) then pi -. x else x in
   add_sign flg (
@@ -103,11 +108,13 @@ let rec fcos x =
   let x = abs_float x in
   let x = reduction2pi x in
 
-  let flg = if x >= pi then reverse flg else flg in
-  let x = if x >= pi then x -. pi else x in
+  let b = x >= pi in
+  let flg = if b then reverse flg else flg in
+  let x = if b then x -. pi else x in
 
-  let flg = if x >= (pi *.0.5) then reverse flg else flg in
-  let x = if x >= (pi *. 0.5) then pi -. x else x in
+  let b = x >= (pi *. 0.5) in
+  let flg = if b then reverse flg else flg in
+  let x = if b then pi -. x else x in
 
   add_sign flg (
     if x <= (pi /. 4.0)
