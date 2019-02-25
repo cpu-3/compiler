@@ -88,11 +88,10 @@ let rec fsin x =
   let flg = flag x in
   let x = abs_float x in
   let x = reduction2pi x in
-  let (x, flg) =
-    if x >= pi then
-      (x -. pi, reverse flg)
-    else
-      (x, flg) in
+
+  let flg = if x >= pi then reverse flg else flg in
+  let x = if x >= pi then x -. pi else x in
+
   let x = if x >= (pi /. 2.0) then pi -. x else x in
   add_sign flg (
     if x <= (pi /. 4.0)
@@ -103,17 +102,13 @@ let rec fcos x =
   let flg = 1.0 in
   let x = abs_float x in
   let x = reduction2pi x in
-  let (x, flg) =
-    if x >= pi then
-      (x -. pi, reverse flg)
-    else
-      (x, flg) in
-  let (x, flg) =
-    if x >= (pi /. 2.0) then
-      (pi -. x, reverse flg)
-    else
-      (x, flg)
-  in
+
+  let flg = if x >= pi then reverse flg else flg in
+  let x = if x >= pi then x -. pi else x in
+
+  let flg = if x >= (pi *.0.5) then reverse flg else flg in
+  let x = if x >= (pi *. 0.5) then pi -. x else x in
+
   add_sign flg (
     if x <= (pi /. 4.0)
     then kernel_cos x
@@ -126,7 +121,7 @@ let rec div10 lb ub target =
   if (ub - lb) <= 1 then
     lb
   else
-  let mb = (ub - lb) / 2 in
+  let mb = (ub + lb) / 2 in
   let mb8 = mb * 8 in
   let mb10 = mb8 + mb + mb in
   if mb10 > target then
@@ -150,8 +145,6 @@ let rec print_int x =
   else if x = 0 then
     print_char 48
   else
-    print_int_inner (-x)
+    (print_char 45;
+    print_int_inner (-x))
 in
-
-
-
