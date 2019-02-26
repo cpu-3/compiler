@@ -5,7 +5,7 @@ let limit = ref 1000
 let rec iter n e = (* 最適化処理をくりかえす (caml2html: main_iter) *)
   Format.eprintf "iteration %d@." n;
   if n = 0 then e else
-    let e' = Elim.f (ConstFold.f (Inline.f (Assoc.f (Beta.f e)))) in
+    let e' = Elim.f (Common.f (ConstFold.f (Inline.f (Assoc.f (Beta.f e))))) in
     if e = e' then e else
       iter (n - 1) e'
 
@@ -19,10 +19,12 @@ let lexbuf outchan nml = (* バッファをコンパイルしてチャンネル�
              (Closure.f     (* knormal.t -> closure.prog *)
                 (let a = iter !limit
                      (let b = Alpha.f nml in
-                      print_string "KNormal after alpha: "; KNormal.print_t b; print_newline (); b) in
-                 print_string "KNormal after iter: "; KNormal.print_t a; print_newline (); a))))) in (* knormal.t -> knormal.t *)
-  print_string "\nAsm.Prog: ";
-  Asm.print_prog prog;
+                      (*print_string "KNormal after alpha: "; KNormal.print_t b;
+                       * print_newline ();*) b) in
+                 (*print_string "KNormal after iter: "; KNormal.print_t a;
+                  * print_newline ();*) a))))) in (* knormal.t -> knormal.t *)
+  (*print_string "\nAsm.Prog: ";
+  Asm.print_prog prog;*)
   Emit.f outchan prog
 
 let lexbuf' outchan buf = lexbuf outchan (KNormal.f (Typing.f (Parser.exp Lexer.token buf)))
@@ -57,8 +59,8 @@ let file f = (* ファイルをコンパイルしてファイルに出力する 
         )
       in
       if cont && (!state = 2) then
-        input inchan bs 0 x 
-      else 
+        input inchan bs 0 x
+      else
         ret
     )
   in
@@ -67,12 +69,12 @@ let file f = (* ファイルをコンパイルしてファイルに出力する 
   let stx = Parser.exp Lexer.token (Lexing.from_function g) in
   let nml = KNormal.f (Typing.f stx) in (* syntax.t -> syntax.t -> knormal.t *)
   try
-    print_string "Syntax: "; (* Syntax.tの中間結果 *)
+    (*print_string "Syntax: "; (* Syntax.tの中間結果 *)
     Syntax.print_t stx;
     print_newline ();
     print_string "KNormal: "; (* KNormal.tの中間結果 *)
     KNormal.print_t nml;
-    print_newline ();
+    print_newline ();*)
     lexbuf outchan nml;
     close_in inchan;
     close_out outchan;

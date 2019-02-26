@@ -4,7 +4,7 @@
 *.cmi
 *.cmo
 *.o
-*.mli
+#*.mli
 *.s
 min-caml
 min-caml.top
