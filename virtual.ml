@@ -146,7 +146,7 @@ let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts
   let (offset, load) =
     expand
       zts
-      (4, g (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
+      (1, g (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
       (fun z offset load -> fletd(z, Lfd(x, C(offset)), load))
       (fun z t offset load -> Let((z, t), Lw(x, C(offset)), load)) in
   match t with
