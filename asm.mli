@@ -25,6 +25,7 @@ and exp =
   | FDiv of Id.t * Id.t
   | Fless of Id.t * Id.t
   | FSqrt of Id.t
+  | FAbs of Id.t
   | FToI of Id.t
   | IToF of Id.t
   | Lfd of Id.t * id_or_imm

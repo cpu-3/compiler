@@ -15,6 +15,7 @@ type t = (* クロージャ変換後の式 (caml2html: closure_t) *)
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
   | FSqrt of Id.t
+  | FAbs of Id.t
   | FToI of Id.t
   | IToF of Id.t
   | Fless of Id.t * Id.t
@@ -39,7 +40,7 @@ type prog = Prog of fundef list * t
 
 let rec fv = function
   | Unit | Int(_) | Float(_) | ExtArray(_) | ExtTuple(_) -> S.empty
-  | Neg(x) | FNeg(x) | FSqrt(x) | FToI(x) | IToF(x) -> S.singleton x
+  | Neg(x) | FNeg(x) | FAbs(x)| FSqrt(x) | FToI(x) | IToF(x) -> S.singleton x
   | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Fless(x, y)-> S.of_list [x; y]
   | IfEq(x, y, e1, e2)| IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
@@ -112,9 +113,10 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
   | KNormal.ExtTuple(x) -> ExtTuple(Id.L(x))
   | KNormal.ExtFunApp(x, ys) ->
     if x = "int_of_float" then FToI(List.hd ys)
-      else if x = "float_of_int" then IToF(List.hd ys)
-      (*else *)(*if x = "sqrt" then FSqrt(List.hd ys)*)
+    else if x = "float_of_int" then IToF(List.hd ys)
+    else if x = "sqrt" then FSqrt(List.hd ys)
     else if x = "fneg" then FNeg(List.hd ys)
+    else if x = "fabs" then FAbs(List.hd ys)
     (* List.hdの順序おかしそう *)
     else if x = "fless" then Fless(List.hd ys, List.hd(List.tl ys))
     else AppDir(Id.L("min_caml_" ^ x), ys)
@@ -144,6 +146,7 @@ let rec print_t = function
   | FDiv (s1, s2) -> print_string (s1 ^ " /. " ^ s2 ^ " ");
   | Fless (s1, s2) -> print_string (s1 ^ " < " ^ s2 ^ " ");
   | FSqrt s -> print_string ("fsqrt " ^ s ^ " ");
+  | FAbs s -> print_string ("fabs " ^ s ^ " ");
   | FToI s -> print_string ("ftoi " ^ s ^ " ");
   | IToF s -> print_string ("itof " ^ s ^ " ");
   | IfEq (s1, s2, t1, t2) ->

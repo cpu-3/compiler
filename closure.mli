@@ -15,6 +15,7 @@ type t =
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
   | FSqrt of Id.t
+  | FAbs of Id.t
   | FToI of Id.t
   | IToF of Id.t
   | Fless of Id.t * Id.t

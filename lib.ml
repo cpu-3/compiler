@@ -1,8 +1,3 @@
-let rec abs_float x =
-  if x < 0.0 then (-1.0) *. x
-  else x
-in
-let rec fabs x = abs_float x in
 let rec truncate x = ftoi x in
 let rec int_of_float x = truncate x in
 let rec float_of_int x = itof x in
@@ -89,7 +84,7 @@ let rec kernel_cos x =
 let rec fsin x =
   let pi = 3.14159265358979 in
   let flg = flag x in
-  let x = abs_float x in
+  let x = fabs x in
   let x = reduction2pi x in
 
   let b = x >= pi in
@@ -105,7 +100,7 @@ let rec fsin x =
 let rec fcos x =
   let pi = 3.14159265358979 in
   let flg = 1.0 in
-  let x = abs_float x in
+  let x = fabs x in
   let x = reduction2pi x in
 
   let b = x >= pi in

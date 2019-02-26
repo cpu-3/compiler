@@ -95,6 +95,7 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
   | NonTail(x), FDiv(y, z) -> Printf.bprintf buf "\tfdiv.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), Fless(y, z) -> Printf.bprintf buf "\tflt.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FSqrt(y) -> Printf.bprintf buf "\tfsqrt.s\t%s, %s\n" (reg x) (reg y)
+  | NonTail(x), FAbs(y) -> Printf.bprintf buf "\tfabs.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FToI(y) -> Printf.bprintf buf "\tfcvt.w.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), IToF(y) -> Printf.bprintf buf "\tfcvt.s.w\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), Lfd(y, V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tflw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
@@ -125,7 +126,8 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     g' buf b_cont_opt (NonTail(regs.(0)), exp);
     Printf.bprintf buf "$(addsp)";
     Printf.bprintf buf "\tret\n"
-  | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FSqrt _ | Fless _
+  | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FSqrt _
+          | Fless _ | FAbs _
           | Lfd _ | FToI _ | IToF _ as exp) ->
     g' buf b_cont_opt (NonTail(fregs.(0)), exp);
     Printf.bprintf buf "$(addsp)";
