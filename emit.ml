@@ -16,8 +16,8 @@ let locate x =
     | y :: zs when x = y -> 0 :: List.map succ (loc zs)
     | y :: zs -> List.map succ (loc zs) in
   loc !stackmap
-let offset x = 4 * List.hd (locate x)
-let stacksize () = (List.length !stackmap) * 4
+let offset x = List.hd (locate x)
+let stacksize () = (List.length !stackmap)
 
 let reg r =
   if is_reg r
@@ -270,9 +270,11 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
   let buffer = Buffer.create 128 in
   stackset := S.empty;
   stackmap := [];
+  (*
   print_newline ();
   print_string "Asm print_t: ";
   Asm.print_t e;
+     *)
   g buffer None (Tail, e);
   let n = stacksize () in
   let buffer' = Buffer.create 128 in

@@ -27,9 +27,9 @@ let expand xts ini addf addi =
     ini
     (fun (offset, acc) x ->
        let offset = align offset in
-       (offset + 4, addf x offset acc))
+       (offset + 1, addf x offset acc))
     (fun (offset, acc) x t ->
-       (offset + 4, addi x t offset acc))
+       (offset + 1, addi x t offset acc))
 
 let rec g env = function (* 式の仮想マシンコード生成 (caml2html: virtual_g) *)
   | Closure.Unit -> Ans(Nop)
@@ -86,7 +86,7 @@ let rec g env = function (* 式の仮想マシンコード生成 (caml2html: vir
     let offset, store_fv =
       expand
         (List.map (fun y -> (y, M.find y env)) ys)
-        (4, e2')
+        (1, e2')
         (fun y offset store_fv -> seq(Stfd(y, x, C(offset)), store_fv))
         (fun y _ offset store_fv -> seq(Sw(y, x, C(offset)), store_fv)) in
     Let((x, t), Mv(reg_hp),
@@ -126,26 +126,16 @@ let rec g env = function (* 式の仮想マシンコード生成 (caml2html: vir
              Let((x, t), Lw(y, C(offset)), load)) in
     load
   | Closure.Get(x, y) -> (* 配列の読み出し (caml2html: virtual_get) *)
-    let offset = Id.genid "o" in
     (match M.find x env with
      | Type.Array(Type.Unit) -> Ans(Nop)
-     | Type.Array(Type.Float) ->
-       Let((offset, Type.Int), Sll(y, C(2)),
-           Ans(Lfd(x, V(offset))))
-     | Type.Array(_) ->
-       Let((offset, Type.Int), Sll(y, C(2)),
-           Ans(Lw(x, V(offset))))
+     | Type.Array(Type.Float) -> Ans(Lfd(x, V(y)))
+     | Type.Array(_) -> Ans(Lw(x, V(y)))
      | _ -> assert false)
   | Closure.Put(x, y, z) ->
-    let offset = Id.genid "o" in
     (match M.find x env with
      | Type.Array(Type.Unit) -> Ans(Nop)
-     | Type.Array(Type.Float) ->
-       Let((offset, Type.Int), Sll(y, C(2)),
-           Ans(Stfd(z, x, V(offset))))
-     | Type.Array(_) ->
-       Let((offset, Type.Int), Sll(y, C(2)),
-           Ans(Sw(z, x, V(offset))))
+     | Type.Array(Type.Float) -> Ans(Stfd(z, x, V(y)))
+     | Type.Array(_) -> Ans(Sw(z, x, V(y)))
      | _ -> assert false)
   | Closure.ExtArray(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
   | Closure.ExtTuple(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))

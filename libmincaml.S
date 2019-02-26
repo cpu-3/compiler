@@ -1,20 +1,20 @@
 # print_char
 min_caml_print_char:
-  li s11, 131076
+  li s11, 32769
   sb a0, 0(s11)
   ret
 
 # input_char
 min_caml_input_char:
-  li s11, 131072
+  li s11, 32768
   lb a0, 0(s11)
   ret
 
 # read_float
 min_caml_read_float:
-	add	sp, sp, -12
-	sw	ra, 8(sp)
-	sw  s2, 4(sp)
+	add	sp, sp, -3
+	sw	ra, 2(sp)
+	sw  s2, 1(sp)
 	li s2, 0
 	call min_caml_input_char
 	add s2, s2, a0
@@ -30,15 +30,15 @@ min_caml_read_float:
 	sw  s2, 0(sp)
 	flw f0, 0(sp)
 read_float_end:
-	lw  ra, 8(sp)
-	lw  s2, 4(sp)
-	add	sp, sp, 12
+	lw  ra, 2(sp)
+	lw  s2, 1(sp)
+	add	sp, sp, 3
 	ret
 
 min_caml_read_int:
-	add	sp, sp, -12
-	sw	ra, 8(sp)
-	sw  s2, 4(sp)
+	add	sp, sp, -3
+	sw	ra, 2(sp)
+	sw  s2, 1(sp)
 	li s2, 0
 	call min_caml_input_char
 	add s2, s2, a0
@@ -53,9 +53,9 @@ min_caml_read_int:
 	add s2, s2, a0
     mv a0, s2
 read_int_end:
-	lw  ra, 8(sp)
-	lw  s2, 4(sp)
-	add	sp, sp, 12
+	lw  ra, 2(sp)
+	lw  s2, 1(sp)
+	add	sp, sp, 3
 	ret
 
 # print_newline
@@ -73,7 +73,7 @@ create_array_loop:
 create_array_cont:
 	sw  a1, 0(hp)
 	sub t1, t1, 1
-	add hp, hp, 4
+	add hp, hp, 1
 	j create_array_loop
 
 #	create_float_array
@@ -86,7 +86,7 @@ create_float_array_loop:
 create_float_array_cont:
 	fsw  f0, 0(hp)
 	sub t1, t1, 1
-	add hp, hp, 4
+	add hp, hp, 1
 	j create_float_array_loop
 
 fsqrt_24:	 # 1.500000
@@ -130,12 +130,12 @@ min_caml_sqrt:
 	add	sp, sp, 4
 	ret
 min_caml_union_ftoi:
-	fsw f0, -4(sp)
-	lw a0, -4(sp)
+	fsw f0, -1(sp)
+	lw a0, -1(sp)
 	ret
 min_caml_union_itof:
-	sw a0, -4(sp)
-	flw f0, -4(sp)
+	sw a0, -1(sp)
+	flw f0, -1(sp)
 	ret
 itof_l86:	 # 0.500000
 	.word	1056964608
@@ -144,7 +144,7 @@ itof_l82:	 # 0.000000
 itof_l78:	 # 8388608.000000
 	.word	1258291200
 itof_kern.1:
-	add	sp, sp, -4
+	add	sp, sp, -1
 	sw	ra, 0(sp)
 	li	a1, 1258291200
 	add	a0, a0, a1
@@ -153,7 +153,7 @@ itof_kern.1:
 	flw	f1, 0(t1)
 	fsub.s	f0, f0, f1
 	lw	ra, 0(sp)
-	add	sp, sp, 4
+	add	sp, sp, 1
 	ret
 itof2.3:
 	li	a1, 8388608
@@ -168,8 +168,8 @@ ble_else.98:
 	mv	a1, hp
 	ret
 min_caml_itof:
-	add	sp, sp, -12
-	sw	ra, 8(sp)
+	add	sp, sp, -3
+	sw	ra, 2(sp)
 	li	t1, 0
 	blt	a0, t1, bge_else.99
 	mv	a1, a0
@@ -182,23 +182,23 @@ bge_cont.100:
 	sw	a0, 0(sp)
 	mv	a0, a1
 	call	itof2.3
-	fsw	f0, 4(sp)
+	fsw	f0, 1(sp)
 	call	itof_kern.1
-	flw	f1, 4(sp)
+	flw	f1, 1(sp)
 	fadd.s	f0, f0, f1
 	lw	a0, 0(sp)
 	li	t1, 0
 	blt	a0, t1, bge_else.101
-	lw	ra, 8(sp)
-	add	sp, sp, 12
+	lw	ra, 2(sp)
+	add	sp, sp, 3
 	ret
 bge_else.101:
 	fneg.s	f0, f0
-	lw	ra, 8(sp)
-	add	sp, sp, 12
+	lw	ra, 2(sp)
+	add	sp, sp, 3
 	ret
 ftoi_kern.8:
-	add	sp, sp, -4
+	add	sp, sp, -1
 	sw	ra, 0(sp)
 	li	t1, itof_l78
 	flw	f1, 0(t1)
@@ -207,7 +207,7 @@ ftoi_kern.8:
 	li	a1, 1258291200
 	sub	a0, a0, a1
 	lw	ra, 0(sp)
-	add	sp, sp, 4
+	add	sp, sp, 1
 	ret
 ftoi2.10:
 	li	t1, itof_l78

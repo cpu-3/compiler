@@ -112,10 +112,10 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
   | KNormal.ExtArray(x) -> ExtArray(Id.L(x))
   | KNormal.ExtTuple(x) -> ExtTuple(Id.L(x))
   | KNormal.ExtFunApp(x, ys) ->
-    if x = "int_of_float" then FToI(List.hd ys)
+    (*if x = "int_of_float" then FToI(List.hd ys)
     else if x = "float_of_int" then IToF(List.hd ys)
     else if x = "sqrt" then FSqrt(List.hd ys)
-    else if x = "fneg" then FNeg(List.hd ys)
+    else*) if x = "fneg" then FNeg(List.hd ys)
     else if x = "fabs" then FAbs(List.hd ys)
     (* List.hdの順序おかしそう *)
     else if x = "fless" then Fless(List.hd ys, List.hd(List.tl ys))
