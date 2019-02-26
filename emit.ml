@@ -60,7 +60,10 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
   | NonTail(_), Nop -> ()
   | NonTail("x0"), Li(0) -> ()
-  | NonTail(x), Li(i) -> Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
+  | NonTail(x), Li(i) -> if -2048 <= i && i < 2048 then
+      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg x) i
+    else
+      Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
   | NonTail(x), FLi(Id.L(l)) ->
     Printf.bprintf buf "\tli\t%s, %s\n" (reg reg_tmp) l;
     Printf.bprintf buf "\tflw\t%s, 0(%s)\n" (reg x) (reg reg_tmp)
