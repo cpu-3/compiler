@@ -4,9 +4,9 @@ let program_start = 456
 let f_table = ref []
 
 let tag2addr tag =
-    match List.assoc_opt tag !f_table with
-     | Some(v) when v < 2048 -> C(v)
-     | _ -> V(tag)
+  match List.assoc_opt tag !f_table with
+  | Some(v) when v < 2048 -> C(v)
+  | _ -> V(tag)
 
 let stackset = ref S.empty (* すでにSaveされた変数の集合 (caml2html: emit_stackset) *)
 let stackmap = ref [] (* Saveされた変数の、スタックにおける位置 (caml2html: emit_stackmap) *)
@@ -75,12 +75,12 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
       Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
   | NonTail(x), FLi(Id.L(l)) ->
     (match tag2addr l with
-    | C(v) -> (
-        Printf.bprintf buf "\tflw\t%s, %d(zero)\n" (reg x) v
-      )
-    | V(l) ->
-      Printf.bprintf buf "\tli\t%s, %s\n" (reg reg_tmp) l;
-      Printf.bprintf buf "\tflw\t%s, 0(%s)\n" (reg x) (reg reg_tmp)
+     | C(v) -> (
+         Printf.bprintf buf "\tflw\t%s, %d(zero)\n" (reg x) v
+       )
+     | V(l) ->
+       Printf.bprintf buf "\tli\t%s, %s\n" (reg reg_tmp) l;
+       Printf.bprintf buf "\tflw\t%s, 0(%s)\n" (reg x) (reg reg_tmp)
     )
   | NonTail(x), SetL(Id.L(y)) ->
     Printf.bprintf buf "\tli\t%s, %s\n" (reg x) y;
@@ -169,12 +169,15 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     g'_tail_if buf e1 e2 "beq" "bne" (reg x) (reg y)
   | Tail, IfEq(x, C(0), e1, e2) ->
     g'_tail_if buf e1 e2 "beq" "bne" (reg x) (reg "%x0")
+  | Tail, IfEq(x, C(y), e1, e2) when -16 <= y && y < 15->
+    g'_tail_if buf e1 e2 "beq" "bnei"
+      (reg x) (reg (Printf.sprintf "%%x%d" (y + 16)))
   | Tail, IfEq(x, C(y), e1, e2) ->
     (if -2048 <= y && y < 2048 then
-      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
-    else
-      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
-   );
+       Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+     else
+       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+    );
     g'_tail_if buf e1 e2 "beq" "bne" (reg x) (reg reg_tmp)
   | Tail, IfLE(x, V(y), e1, e2) ->
     g'_tail_if buf e1 e2 "ble" "bgt" (reg x) (reg y)
@@ -182,10 +185,10 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     g'_tail_if buf e1 e2 "ble" "bgt" (reg x) (reg "%x0")
   | Tail, IfLE(x, C(y), e1, e2) ->
     (if -2048 <= y && y < 2048 then
-      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
-    else
-      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
-   );
+       Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+     else
+       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+    );
     g'_tail_if buf e1 e2 "ble" "bgt" (reg x) (reg reg_tmp)
   | Tail, IfGE(x, V(y), e1, e2) ->
     g'_tail_if buf e1 e2 "bge" "blt" (reg x) (reg y)
@@ -193,10 +196,10 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     g'_tail_if buf e1 e2 "bge" "blt" (reg x) (reg "%x0")
   | Tail, IfGE(x, C(y), e1, e2) ->
     (if -2048 <= y && y < 2048 then
-      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
-    else
-      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
-   );
+       Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+     else
+       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+    );
     g'_tail_if buf e1 e2 "bge" "blt" (reg x) (reg reg_tmp)
   | Tail, IfFEq(x, y, e1, e2) ->
     g'_tail_if buf e1 e2 "fne" "feq.s" (reg x) (reg y)
@@ -206,12 +209,16 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg y) b_cont_opt
   | NonTail(z), IfEq(x, C(0), e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg "%x0") b_cont_opt
+  | NonTail(z), IfEq(x, C(y), e1, e2) when -16 <= y && y < 15->
+    g'_non_tail_if buf (NonTail(z))
+      e1 e2 "beqi" "bnei" (reg x) (reg (Printf.sprintf "%%x%d" (y + 16)))
+    b_cont_opt
   | NonTail(z), IfEq(x, C(y), e1, e2) ->
     (if -2048 <= y && y < 2048 then
-      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
-    else
-      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
-   );
+       Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+     else
+       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+    );
     g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfLE(x, V(y), e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg y) b_cont_opt
@@ -219,10 +226,10 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg "%x0") b_cont_opt
   | NonTail(z), IfLE(x, C(y), e1, e2) ->
     (if -2048 <= y && y < 2048 then
-      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
-    else
-      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
-   );
+       Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+     else
+       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+    );
     g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfGE(x, V(y), e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg y) b_cont_opt
@@ -230,10 +237,10 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg "%x0") b_cont_opt
   | NonTail(z), IfGE(x, C(y), e1, e2) ->
     (if -2048 <= y && y < 2048 then
-      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
-    else
-      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
-   );
+       Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+     else
+       Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+    );
     g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfFEq(x, y, e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "fne" "feq.s" (reg x) (reg y) b_cont_opt
