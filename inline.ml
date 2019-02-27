@@ -5,7 +5,7 @@ let threshold = ref 0 (* Mainで-inlineオプションによりセットされ�
 
 (*let avoids = ["sin.40"; "cos.42"; "atan.19"; "print_int_inner.48"]*)
 
-let avoids = [ "print_int_inner.48"]
+let avoids = []
 
 let rec size = function
   | IfEq(_, _, e1, e2) | IfLE(_, _, e1, e2)
