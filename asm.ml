@@ -17,8 +17,8 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | Mul of Id.t * id_or_imm
   | Div of Id.t * id_or_imm
   | Sll of Id.t * id_or_imm
-  | Lw of Id.t * id_or_imm
-  | Sw of Id.t * Id.t * id_or_imm
+  | Lw of id_or_imm * id_or_imm
+  | Sw of Id.t * id_or_imm * id_or_imm
   | FMv of Id.t
   | FNeg of Id.t
   | FAdd of Id.t * Id.t
@@ -30,8 +30,8 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | FAbs of Id.t
   | FToI of Id.t
   | IToF of Id.t
-  | Lfd of Id.t * id_or_imm
-  | Stfd of Id.t * Id.t * id_or_imm
+  | Lfd of id_or_imm * id_or_imm
+  | Stfd of Id.t * id_or_imm * id_or_imm
   | Comment of string
   (* virtual instructions *)
   | IfEq of Id.t * id_or_imm * t * t
@@ -78,8 +78,9 @@ let fv_id_or_imm = function V(x) -> [x] | _ -> []
 let rec fv_exp = function
   | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) | Restore(_) -> []
   | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | FToI(x) | IToF(x) | FSqrt(x) | FAbs(x) | Save(x, _) -> [x]
-  | Add(x, y') | Sub(x, y') | Mul(x, y') | Div(x, y') | Sll(x, y') | Lfd(x, y') | Lw(x, y') -> x :: fv_id_or_imm y'
-  | Sw(x, y, z') | Stfd(x, y, z') -> x :: y :: fv_id_or_imm z'
+  | Add(x, y') | Sub(x, y') | Mul(x, y') | Div(x, y') | Sll(x, y') -> x :: fv_id_or_imm y'
+  | Lfd(x, y') | Lw(x, y') -> fv_id_or_imm x @ fv_id_or_imm y'
+  | Sw(x, y, z') | Stfd(x, y, z') -> x :: (fv_id_or_imm y @ fv_id_or_imm z')
   | Xor(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Fless(x, y) -> [x; y]
   | IfEq(x, y', e1, e2) | IfLE(x, y', e1, e2) | IfGE(x, y', e1, e2) ->  x :: fv_id_or_imm y' @ remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
   | IfFEq(x, y, e1, e2) | IfFLE(x, y, e1, e2) -> x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
@@ -122,8 +123,8 @@ and print_exp = function
   | Mul(s, i) -> (print_string ("mul " ^ s ^ " "); print_id_or_imm i)
   | Div(s, i) -> (print_string ("div " ^ s ^ " "); print_id_or_imm i)
   | Sll(s, i) -> (print_string ("sll " ^ s ^ " "); print_id_or_imm i)
-  | Lw(s, i) -> (print_string ("lw " ^ s ^ " "); print_id_or_imm i)
-  | Sw(s1, s2, i) -> (print_string ("sw " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
+  | Lw(s, i) -> (print_string ("lw " ^ "hoge" ^ " "); print_id_or_imm i)
+  | Sw(s1, s2, i) -> (print_string ("sw " ^ s1 ^ " " ^ "hoge" ^ " "); print_id_or_imm i)
   | FMv(s) -> print_string ("fmv " ^ s)
   | FNeg(s) -> print_string ("fneg " ^ s)
   | FAdd(s1, s2) -> print_string ("fadd " ^ s1 ^ " " ^ s2 ^ " ")
@@ -135,8 +136,8 @@ and print_exp = function
   | FAbs(s1) -> print_string ("fabs " ^ s1 ^ " ")
   | FToI(s1) -> print_string ("ftoi " ^ s1 ^ " ")
   | IToF(s1) -> print_string ("itof " ^ s1 ^ " ")
-  | Lfd(s, i) -> (print_string ("lfd " ^ s ^ " "); print_id_or_imm i)
-  | Stfd(s1, s2, i) -> (print_string ("stfd " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
+  | Lfd(s, i) -> (print_string ("lfd " ^ "hoge" ^ " "); print_id_or_imm i)
+  | Stfd(s1, s2, i) -> (print_string ("stfd " ^ s1 ^ " " ^ "hoge" ^ " "); print_id_or_imm i)
   | Comment(s) -> (print_string ("comment " ^ s))
   (* virtual instructions *)
   | IfEq(s, i, t1, t2) -> (print_string ("ifeq " ^ s ^ " ");

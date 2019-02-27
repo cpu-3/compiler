@@ -3,51 +3,10 @@ open Asm
 let program_start = 453
 let f_table = ref []
 
-let globals =  [("n_objects",16);
-     ("dummy",17);
-     ("objects",29);
-     ("screen",89);
-     ("viewpoint",92);
-     ("light",95);
-     ("beam",98);
-     ("dummy",99);
-     ("and_net",100);
-     ("dummy",150);
-     ("or_net",151);
-     ("solver_dist",152);
-     ("intsec_rectside",153);
-     ("tmin",154);
-     ("intersection_point",155);
-     ("intersected_object_id",158);
-     ("nvector",159);
-     ("texture_color",162);
-     ("diffuse_ray",165);
-     ("rgb",168);
-     ("image_size",171);
-     ("image_center",173);
-     ("scan_pitch",175);
-     ("startp",176);
-     ("startp_fast",179);
-     ("screenx_dir",182);
-     ("screeny_dir",185);
-     ("screenz_dir",188);
-     ("ptrace_dirvec",191);
-     ("dummy",194);
-     ("dirvecs",196);
-     ("dummy",201);
-     ("light_dirvec",264);
-     ("dummy",266);
-     ("reflections",272);
-     ("n_reflections",452);
-               ]
-
 let tag2addr tag =
-  match List.assoc_opt tag globals with
-  | Some(v) -> Some(v)
-  | None ->
-    List.assoc_opt tag !f_table
-
-
+    match List.assoc_opt tag !f_table with
+     | Some(v) -> C(v)
+     | None -> V(tag)
 
 let stackset = ref S.empty (* すでにSaveされた変数の集合 (caml2html: emit_stackset) *)
 let stackmap = ref [] (* Saveされた変数の、スタックにおける位置 (caml2html: emit_stackmap) *)
@@ -134,10 +93,14 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     Printf.bprintf buf "\tsrli\t%s, %s, %d\n" (reg x) (reg y) a
   | NonTail(x), Sll(y, V(z)) -> Printf.bprintf buf "\tsll\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), Sll(y, C(z)) -> Printf.bprintf buf "\tslli\t%s, %s, %d\n" (reg x) (reg y) z
-  | NonTail(x), Lw(y, V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
-  | NonTail(x), Lw(y, C(z)) -> Printf.bprintf buf "\tlw\t%s, %d(%s)\n" (reg x) z (reg y)
-  | NonTail(_), Sw(x, y, V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tsw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
-  | NonTail(_), Sw(x, y, C(z)) -> Printf.bprintf buf "\tsw\t%s, %d(%s)\n" (reg x) z (reg y)
+  | NonTail(x), Lw(V(y), V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tlw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
+  | NonTail(x), Lw(V(y), C(z)) -> Printf.bprintf buf "\tlw\t%s, %d(%s)\n" (reg x) z (reg y)
+  | NonTail(x), Lw(C(y), V(z)) -> Printf.bprintf buf "\tlw\t%s, %d(%s)\n" (reg x) y (reg z)
+  | NonTail(x), Lw(C(y), C(z)) -> Printf.bprintf buf "\tlw\t%s, %d(zero)\n" (reg x) (y + z)
+  | NonTail(_), Sw(x, V(y), V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tsw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
+  | NonTail(_), Sw(x, V(y), C(z)) -> Printf.bprintf buf "\tsw\t%s, %d(%s)\n" (reg x) z (reg y)
+  | NonTail(_), Sw(x, C(y), V(z)) -> Printf.bprintf buf "\tsw\t%s, %d(%s)\n" (reg x) y (reg z)
+  | NonTail(_), Sw(x, C(y), C(z)) -> Printf.bprintf buf "\tsw\t%s, %d(zero)\n" (reg x) (y + z)
   | NonTail(x), FMv(y) when x = y -> ()
   | NonTail(x), FMv(y) -> Printf.bprintf buf "\tfmv.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FNeg(y) -> Printf.bprintf buf "\tfneg.s\t%s, %s\n" (reg x) (reg y)
@@ -150,10 +113,14 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
   | NonTail(x), FAbs(y) -> Printf.bprintf buf "\tfabs.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FToI(y) -> Printf.bprintf buf "\tfcvt.w.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), IToF(y) -> Printf.bprintf buf "\tfcvt.s.w\t%s, %s\n" (reg x) (reg y)
-  | NonTail(x), Lfd(y, V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tflw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
-  | NonTail(x), Lfd(y, C(z)) -> Printf.bprintf buf "\tflw\t%s, %d(%s)\n" (reg x) z (reg y)
-  | NonTail(_), Stfd(x, y, V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tfsw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
-  | NonTail(_), Stfd(x, y, C(z)) -> Printf.bprintf buf "\tfsw\t%s, %d(%s)\n" (reg x) z (reg y)
+  | NonTail(x), Lfd(V(y), V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tflw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
+  | NonTail(x), Lfd(V(y), C(z)) -> Printf.bprintf buf "\tflw\t%s, %d(%s)\n" (reg x) z (reg y)
+  | NonTail(x), Lfd(C(y), V(z)) -> Printf.bprintf buf "\tflw\t%s, %d(%s)\n" (reg x) y (reg z)
+  | NonTail(x), Lfd(C(y), C(z)) -> Printf.bprintf buf "\tflw\t%s, %d(zero)\n" (reg x) (y + z)
+  | NonTail(_), Stfd(x, V(y), V(z)) -> Printf.bprintf buf "\tadd\t%s, %s, %s\n\tfsw\t%s, 0(%s)\n" (reg reg_tmp) (reg y) (reg z) (reg x) (reg reg_tmp)
+  | NonTail(_), Stfd(x, V(y), C(z)) -> Printf.bprintf buf "\tfsw\t%s, %d(%s)\n" (reg x) z (reg y)
+  | NonTail(_), Stfd(x, C(y), V(z)) -> Printf.bprintf buf "\tfsw\t%s, %d(%s)\n" (reg x) y (reg z)
+  | NonTail(_), Stfd(x, C(y), C(z)) -> Printf.bprintf buf "\tfsw\t%s, %d(zero)\n" (reg x) (y + z)
   | NonTail(_), Comment(s) -> Printf.bprintf buf "#\t%s\n" s
   (* 退避の仮想命令の実装 (caml2html: emit_save) *)
   | NonTail(_), Save(x, y) when List.mem x (reg_link::allregs) && not (S.mem y !stackset) ->
@@ -340,12 +307,9 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
 
 let f oc (Prog(data, fundefs, e)) =
   Format.eprintf "generating assembly...@.";
-  let base_idx = ref program_start in
   if data <> [] then
     (List.iter
        (fun (Id.L(x), d) ->
-          f_table := (x, !base_idx) :: !f_table;
-          base_idx := !base_idx + 1;
           Printf.fprintf oc "%s:\t # %f\n" x d;
           Printf.fprintf oc "\t.word\t%d\n" (Int32.to_int (Int32.bits_of_float d)))
        data);

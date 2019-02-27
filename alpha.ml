@@ -60,8 +60,10 @@ let rec g env = function (* α変換ルーチン本体 (caml2html: alpha_g) *)
                g env' e)
   | Get(x, y) -> Get(find x env, find y env)
   | Put(x, y, z) -> Put(find x env, find y env, find z env)
-  | ExtArray(x) -> ExtArray(x)
-  | ExtTuple(x) -> ExtTuple(x)
+  | GetE(x, y, t) -> GetE(x, find y env, t)
+  | PutE(x, y, z, t) -> PutE(x, find y env, find z env, t)
+  | ExtArray(x, t) -> ExtArray(x, t)
+  | ExtTuple(x, t) -> ExtTuple(x, t)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
 
 let f e = g' (g M.empty e) []

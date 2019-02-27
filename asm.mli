@@ -15,8 +15,8 @@ and exp =
   | Mul of Id.t * id_or_imm
   | Div of Id.t * id_or_imm
   | Sll of Id.t * id_or_imm
-  | Lw of Id.t * id_or_imm
-  | Sw of Id.t * Id.t * id_or_imm
+  | Lw of id_or_imm * id_or_imm
+  | Sw of Id.t * id_or_imm * id_or_imm
   | FMv of Id.t
   | FNeg of Id.t
   | FAdd of Id.t * Id.t
@@ -28,20 +28,20 @@ and exp =
   | FAbs of Id.t
   | FToI of Id.t
   | IToF of Id.t
-  | Lfd of Id.t * id_or_imm
-  | Stfd of Id.t * Id.t * id_or_imm
+  | Lfd of id_or_imm * id_or_imm
+  | Stfd of Id.t * id_or_imm * id_or_imm
   | Comment of string
   (* virtual instructions *)
   | IfEq of Id.t * id_or_imm * t * t
   | IfLE of Id.t * id_or_imm * t * t
-  | IfGE of Id.t * id_or_imm * t * t
+  | IfGE of Id.t * id_or_imm * t * t (* 左右対称ではないので必要 *)
   | IfFEq of Id.t * Id.t * t * t
   | IfFLE of Id.t * Id.t * t * t
   (* closure address, integer arguments, and float arguments *)
   | CallCls of Id.t * Id.t list * Id.t list
   | CallDir of Id.l * Id.t list * Id.t list
-  | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
-  | Restore of Id.t (* スタック変数から値を復元 *)
+  | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 (caml2html: sparcasm_save) *)
+  | Restore of Id.t (* スタック変数から値を復元 (caml2html: sparcasm_restore) *)
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
 type prog = Prog of (Id.l * float) list * fundef list * t
 

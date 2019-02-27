@@ -150,8 +150,10 @@ and g' dest cont regenv = function (* 各命令のレジスタ割り当て (caml
   | Mul(x, y') -> (Ans(Mul(find x Type.Int regenv, find' y' regenv)), regenv)
   | Div(x, y') -> (Ans(Div(find x Type.Int regenv, find' y' regenv)), regenv)
   | Sll(x, y') -> (Ans(Sll(find x Type.Int regenv, find' y' regenv)), regenv)
-  | Lw(x, y') -> (Ans(Lw(find x Type.Int regenv, find' y' regenv)), regenv)
-  | Sw(x, y, z') -> (Ans(Sw(find x Type.Int regenv, find y Type.Int regenv, find' z' regenv)), regenv)
+  | Lw(V(x), y') -> (Ans(Lw(V(find x Type.Int regenv), find' y' regenv)), regenv)
+  | Sw(x, V(y), z') -> (Ans(Sw(find x Type.Int regenv, V(find y Type.Int regenv), find' z' regenv)), regenv)
+  | Lw(C(x), y') -> (Ans(Lw(C(x), find' y' regenv)), regenv)
+  | Sw(x, C(y), z') -> (Ans(Sw(find x Type.Int regenv, C(y), find' z' regenv)), regenv)
   | FMv(x) -> (Ans(FMv(find x Type.Float regenv)), regenv)
   | FNeg(x) -> (Ans(FNeg(find x Type.Float regenv)), regenv)
   | FAdd(x, y) -> (Ans(FAdd(find x Type.Float regenv, find y Type.Float regenv)), regenv)
@@ -163,8 +165,10 @@ and g' dest cont regenv = function (* 各命令のレジスタ割り当て (caml
   | FAbs(x) -> (Ans(FAbs(find x Type.Float regenv)), regenv)
   | FToI(x) -> (Ans(FToI(find x Type.Float regenv)), regenv)
   | IToF(x) -> (Ans(IToF(find x Type.Int regenv)), regenv)
-  | Lfd(x, y') -> (Ans(Lfd(find x Type.Int regenv, find' y' regenv)), regenv)
-  | Stfd(x, y, z') -> (Ans(Stfd(find x Type.Float regenv, find y Type.Int regenv, find' z' regenv)), regenv)
+  | Lfd(V(x), y') -> (Ans(Lfd(V(find x Type.Int regenv), find' y' regenv)), regenv)
+  | Stfd(x, V(y), z') -> (Ans(Stfd(find x Type.Float regenv, V(find y Type.Int regenv), find' z' regenv)), regenv)
+  | Lfd(C(x), y') -> (Ans(Lfd(C(x), find' y' regenv)), regenv)
+  | Stfd(x, C(y), z') -> (Ans(Stfd(find x Type.Float regenv, C(y), find' z' regenv)), regenv)
   | IfEq(x, y', e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfEq(find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
   | IfLE(x, y', e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfLE(find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2
   | IfGE(x, y', e1, e2) as exp -> g'_if dest cont regenv exp (fun e1' e2' -> IfGE(find x Type.Int regenv, find' y' regenv, e1', e2')) e1 e2

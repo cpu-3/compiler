@@ -1,5 +1,8 @@
 (* give names to intermediate values (K-normalization) *)
 
+(* Label or Register *)
+type label = L of Id.t | R of Id.t
+
 type t = (* K正規化後の式 (caml2html: knormal_t) *)
   | Unit
   | Int of int
@@ -25,15 +28,18 @@ type t = (* K正規化後の式 (caml2html: knormal_t) *)
   | LetTuple of (Id.t * Type.t) list * Id.t * t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
-  | ExtArray of Id.t
-  | ExtTuple of Id.t
+  | GetE of Id.t * Id.t * Type.t
+  | PutE of Id.t * Id.t * Id.t * Type.t
+  | ExtArray of Id.t * Type.t
+  | ExtTuple of Id.t * (Type.t list)
   | ExtFunApp of Id.t * Id.t list
 and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 let rec fv = function (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) | ExtTuple(_) -> S.empty
-  | Neg(x) | FNeg(x) -> S.singleton x
-  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) -> S.of_list [x; y]
+  | Neg(x) | FNeg(x) | GetE(_, x, _) -> S.singleton x
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) |
+    FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | PutE(_, x, y, _) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -122,8 +128,8 @@ let rec g env = function (* K正規化ルーチン本体 (caml2html: knormal_g) 
   | Syntax.Var(x) when M.mem x env -> Var(x), M.find x env
   | Syntax.Var(x) -> (* 外部配列の参照 (caml2html: knormal_extarray) *)
       (match M.find x !Typing.extenv with
-      | Type.Array(_) as t -> ExtArray x, t
-      | Type.Tuple(_) as t -> ExtTuple x, t
+      | Type.Array(s) as t -> ExtArray (x, s), t
+      | Type.Tuple(s) as t -> ExtTuple (x, s), t
       | _ -> failwith (Printf.sprintf "external variable %s does not have an array type" x))
   | Syntax.LetRec({ Syntax.name = (x, t); Syntax.args = yts; Syntax.body = e1 }, e2) ->
       let env' = M.add x t env in
@@ -182,16 +188,26 @@ let rec g env = function (* K正規化ルーチン本体 (caml2html: knormal_g) 
               ExtFunApp(l, [x; y]), Type.Array(t2)))
   | Syntax.Get(e1, e2) ->
       (match g env e1 with
-      |        _, Type.Array(t) as g_e1 ->
+        | ExtArray(x, _), Type.Array(t) ->
+          insert_let (g env e2)
+            (fun y -> GetE(x, y, t), t)
+        | _, Type.Array(t) as g_e1 ->
           insert_let g_e1
             (fun x -> insert_let (g env e2)
                 (fun y -> Get(x, y), t))
       | _ -> assert false)
   | Syntax.Put(e1, e2, e3) ->
-      insert_let (g env e1)
-        (fun x -> insert_let (g env e2)
-            (fun y -> insert_let (g env e3)
-                (fun z -> Put(x, y, z), Type.Unit)))
+      (match g env e1 with
+        | ExtArray(x, _), Type.Array(t) ->
+          insert_let (g env e1)
+            (fun y -> insert_let (g env e2)
+                (fun z -> PutE(x, y, z, t), Type.Unit))
+        | _ ->
+          insert_let (g env e1)
+            (fun x -> insert_let (g env e2)
+                (fun y -> insert_let (g env e3)
+                    (fun z -> Put(x, y, z), Type.Unit)))
+      )
 
 let f e = fst (g M.empty e)
 
@@ -248,8 +264,10 @@ let rec print_t nml =
                                    print_t t2)
     | Get (s1, s2) -> print_string (s1 ^ " . (" ^ s2 ^ ")")
     | Put (s1, s2, s3) -> print_string (s1 ^ " . (" ^ s2 ^ ") <- " ^ s3)
-    | ExtArray s -> print_string ("ExtArray " ^ s)
-    | ExtTuple s -> print_string ("ExtTuple " ^ s)
+    | GetE (s1, s2, _) -> print_string (s1 ^ " . (" ^ s2 ^ ")")
+    | PutE (s1, s2, s3, _) -> print_string (s1 ^ " . (" ^ s2 ^ ") <- " ^ s3)
+    | ExtArray (s,_) -> print_string ("ExtArray " ^ s)
+    | ExtTuple (s,_) -> print_string ("ExtTuple " ^ s)
     | ExtFunApp (f, s::ss) -> (print_string ("ExtFunApp " ^ f ^ "(" ^ s);
                                List.iter (fun s' ->
                                    print_string (", " ^ s')) ss;

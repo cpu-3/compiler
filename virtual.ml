@@ -2,6 +2,49 @@
 
 open Asm
 
+let globals =  [("n_objects",16);
+     ("dummy",17);
+     ("objects",29);
+     ("screen",89);
+     ("viewpoint",92);
+     ("light",95);
+     ("beam",98);
+     ("dummy",99);
+     ("and_net",100);
+     ("dummy",150);
+     ("or_net",151);
+     ("solver_dist",152);
+     ("intsec_rectside",153);
+     ("tmin",154);
+     ("intersection_point",155);
+     ("intersected_object_id",158);
+     ("nvector",159);
+     ("texture_color",162);
+     ("diffuse_ray",165);
+     ("rgb",168);
+     ("image_size",171);
+     ("image_center",173);
+     ("scan_pitch",175);
+     ("startp",176);
+     ("startp_fast",179);
+     ("screenx_dir",182);
+     ("screeny_dir",185);
+     ("screenz_dir",188);
+     ("ptrace_dirvec",191);
+     ("dummy",194);
+     ("dirvecs",196);
+     ("dummy",201);
+     ("light_dirvec",264);
+     ("dummy",266);
+     ("reflections",272);
+     ("n_reflections",452);
+               ]
+
+let tag2addr tag =
+  match List.assoc_opt tag globals with
+  | Some(v) -> C(v)
+  | None -> V(tag)
+
 let data = ref [] (* 浮動小数点数の定数テーブル (caml2html: virtual_data) *)
 
 let classify xts ini addf addi =
@@ -62,15 +105,19 @@ let rec g env = function (* 式の仮想マシンコード生成 (caml2html: vir
   | Closure.FToI(x) -> Ans(FToI(x))
   | Closure.IToF(x) -> Ans(IToF(x))
   | Closure.IfEq(x, y, e1, e2) ->
+    (try
     (match M.find x env with
      | Type.Bool | Type.Int -> Ans(IfEq(x, V(y), g env e1, g env e2))
      | Type.Float -> Ans(IfFEq(x, y, g env e1, g env e2))
      | _ -> failwith "equality supported only for bool, int, and float")
+     with Not_found -> failwith "hoge")
   | Closure.IfLE(x, y, e1, e2) ->
+    (try
     (match M.find x env with
      | Type.Bool | Type.Int -> Ans(IfLE(x, V(y), g env e1, g env e2))
      | Type.Float -> Ans(IfFLE(x, y, g env e1, g env e2))
      | _ -> failwith "inequality supported only for bool, int, and float")
+     with Not_found -> failwith "hoge")
   | Closure.Let((x, t1), e1, e2) ->
     let e1' = g env e1 in
     let e2' = g (M.add x t1 env) e2 in
@@ -87,28 +134,31 @@ let rec g env = function (* 式の仮想マシンコード生成 (caml2html: vir
       expand
         (List.map (fun y -> (y, M.find y env)) ys)
         (1, e2')
-        (fun y offset store_fv -> seq(Stfd(y, x, C(offset)), store_fv))
-        (fun y _ offset store_fv -> seq(Sw(y, x, C(offset)), store_fv)) in
+        (fun y offset store_fv -> seq(Stfd(y, V(x), C(offset)), store_fv))
+        (fun y _ offset store_fv -> seq(Sw(y, V(x), C(offset)), store_fv)) in
     Let((x, t), Mv(reg_hp),
         Let((reg_hp, Type.Int), Add(reg_hp, C(align offset)),
             let z = Id.genid "l" in
             Let((z, Type.Int), SetL(l),
-                seq(Sw(z, x, C(0)),
+                seq(Sw(z, V(x), C(0)),
                     store_fv))))
   | Closure.AppCls(x, ys) ->
     let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
     Ans(CallCls(x, int, float))
   | Closure.AppDir(Id.L(x), ys) ->
+    (try(
     let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
-    Ans(CallDir(Id.L(x), int, float))
+    Ans(CallDir(Id.L(x), int, float)))
+     with Not_found -> failwith "hoge")
+
   | Closure.Tuple(xs) -> (* 組の生成 (caml2html: virtual_tuple) *)
     let y = Id.genid "t" in
     let (offset, store) =
       expand
         (List.map (fun x -> (x, M.find x env)) xs)
         (0, Ans(Mv(y)))
-        (fun x offset store -> seq(Stfd(x, y, C(offset)), store))
-        (fun x _ offset store -> seq(Sw(x, y, C(offset)), store))  in
+        (fun x offset store -> seq(Stfd(x, V(y), C(offset)), store))
+        (fun x _ offset store -> seq(Sw(x, V(y), C(offset)), store))  in
     Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), Mv(reg_hp),
         Let((reg_hp, Type.Int), Add(reg_hp, C(align offset)),
             store))
@@ -120,25 +170,44 @@ let rec g env = function (* 式の仮想マシンコード生成 (caml2html: vir
         (0, g (M.add_list xts env) e2)
         (fun x offset load ->
            if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
-             fletd(x, Lfd(y, C(offset)), load))
+             fletd(x, Lfd(V(y), C(offset)), load))
         (fun x t offset load ->
            if not (S.mem x s) then load else (* [XX] a little ad hoc optimization *)
-             Let((x, t), Lw(y, C(offset)), load)) in
+             Let((x, t), Lw(V(y), C(offset)), load)) in
     load
   | Closure.Get(x, y) -> (* 配列の読み出し (caml2html: virtual_get) *)
+    (try
     (match M.find x env with
      | Type.Array(Type.Unit) -> Ans(Nop)
-     | Type.Array(Type.Float) -> Ans(Lfd(x, V(y)))
-     | Type.Array(_) -> Ans(Lw(x, V(y)))
+     | Type.Array(Type.Float) -> Ans(Lfd(V(x), V(y)))
+     | Type.Array(_) -> Ans(Lw(V(x), V(y)))
      | _ -> assert false)
+     with Not_found -> failwith "hoge")
   | Closure.Put(x, y, z) ->
+    (try
     (match M.find x env with
      | Type.Array(Type.Unit) -> Ans(Nop)
-     | Type.Array(Type.Float) -> Ans(Stfd(z, x, V(y)))
-     | Type.Array(_) -> Ans(Sw(z, x, V(y)))
+     | Type.Array(Type.Float) -> Ans(Stfd(z, V(x), V(y)))
+     | Type.Array(_) -> Ans(Sw(z, V(x), V(y)))
      | _ -> assert false)
-  | Closure.ExtArray(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
-  | Closure.ExtTuple(Id.L(x)) -> Ans(SetL(Id.L("min_caml_" ^ x)))
+     with Not_found -> failwith "hoge")
+  | Closure.GetE(x, y, t) -> (* 配列の読み出し (caml2html: virtual_get) *)
+    (try
+    (match t with
+     | Type.Unit -> Ans(Nop)
+     | Type.Float -> Ans(Lfd(tag2addr x, V(y)))
+     | _ -> Ans(Lw(tag2addr x, V(y))))
+     with Not_found -> failwith "hoge")
+  | Closure.PutE(x, y, z, t) ->
+    (try
+    (match t with
+     | Type.Unit -> Ans(Nop)
+     | Type.Float -> Ans(Stfd(z, tag2addr x, V(y)))
+     | _ -> Ans(Sw(z, tag2addr x, V(y)))
+    )
+     with Not_found -> failwith "hoge")
+  | Closure.ExtArray(Id.L(x), t) -> Ans(SetL(Id.L("min_caml_" ^ x)))
+  | Closure.ExtTuple(Id.L(x), t) -> Ans(SetL(Id.L("min_caml_" ^ x)))
 
 (* 関数の仮想マシンコード生成 (caml2html: virtual_h) *)
 let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts; Closure.body = e } =
@@ -147,8 +216,8 @@ let h { Closure.name = (Id.L(x), t); Closure.args = yts; Closure.formal_fv = zts
     expand
       zts
       (1, g (M.add x t (M.add_list yts (M.add_list zts M.empty))) e)
-      (fun z offset load -> fletd(z, Lfd(x, C(offset)), load))
-      (fun z t offset load -> Let((z, t), Lw(x, C(offset)), load)) in
+      (fun z offset load -> fletd(z, Lfd(V(x), C(offset)), load))
+      (fun z t offset load -> Let((z, t), Lw(V(x), C(offset)), load)) in
   match t with
   | Type.Fun(_, t2) ->
     { name = Id.L(x); args = int; fargs = float; body = load; ret = t2 }

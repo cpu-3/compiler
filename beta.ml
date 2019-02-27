@@ -34,9 +34,11 @@ let rec g env = function (* β簡約ルーチン本体 (caml2html: beta_g) *)
   | LetTuple(xts, y, e) -> LetTuple(xts, find y env, g env e)
   | Get(x, y) -> Get(find x env, find y env)
   | Put(x, y, z) -> Put(find x env, find y env, find z env)
+  | GetE(x, y, t) -> GetE(x, find y env, t)
+  | PutE(x, y, z, t) -> PutE(x, find y env, find z env, t)
   | App(g, xs) -> App(find g env, List.map (fun x -> find x env) xs)
-  | ExtArray(x) -> ExtArray(x)
-  | ExtTuple(x) -> ExtTuple(x)
+  | ExtArray(x, t) -> ExtArray(x, t)
+  | ExtTuple(x, t) -> ExtTuple(x, t)
   | ExtFunApp(x, ys) -> ExtFunApp(x, List.map (fun y -> find y env) ys)
 
 let f = g M.empty

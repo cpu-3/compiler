@@ -30,8 +30,10 @@ type t =
   | LetTuple of (Id.t * Type.t) list * Id.t * t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
-  | ExtArray of Id.l
-  | ExtTuple of Id.l
+  | GetE of Id.t * Id.t * Type.t
+  | PutE of Id.t * Id.t * Id.t * Type.t
+  | ExtArray of Id.l * Type.t
+  | ExtTuple of Id.l * (Type.t list)
 type fundef = { name : Id.l * Type.t;
                 args : (Id.t * Type.t) list;
                 formal_fv : (Id.t * Type.t) list;

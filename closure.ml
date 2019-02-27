@@ -30,8 +30,10 @@ type t = (* クロージャ変換後の式 (caml2html: closure_t) *)
   | LetTuple of (Id.t * Type.t) list * Id.t * t
   | Get of Id.t * Id.t
   | Put of Id.t * Id.t * Id.t
-  | ExtArray of Id.l
-  | ExtTuple of Id.l
+  | GetE of Id.t * Id.t * Type.t
+  | PutE of Id.t * Id.t * Id.t * Type.t
+  | ExtArray of Id.l * Type.t
+  | ExtTuple of Id.l * (Type.t list)
 type fundef = { name : Id.l * Type.t;
                 args : (Id.t * Type.t) list;
                 formal_fv : (Id.t * Type.t) list;
@@ -40,8 +42,9 @@ type prog = Prog of fundef list * t
 
 let rec fv = function
   | Unit | Int(_) | Float(_) | ExtArray(_) | ExtTuple(_) -> S.empty
-  | Neg(x) | FNeg(x) | FAbs(x)| FSqrt(x) | FToI(x) | IToF(x) -> S.singleton x
-  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Fless(x, y)-> S.of_list [x; y]
+  | Neg(x) | FNeg(x) | FAbs(x)| FSqrt(x) | FToI(x) | IToF(x) | GetE(_, x, _) -> S.singleton x
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) |
+    FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | Fless(x, y) | PutE(_, x, y, _) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2)| IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
   | Var(x) -> S.singleton x
@@ -109,8 +112,10 @@ let rec g env known = function (* クロージャ変換ルーチン本体 (caml2
   | KNormal.LetTuple(xts, y, e) -> LetTuple(xts, y, g (M.add_list xts env) known e)
   | KNormal.Get(x, y) -> Get(x, y)
   | KNormal.Put(x, y, z) -> Put(x, y, z)
-  | KNormal.ExtArray(x) -> ExtArray(Id.L(x))
-  | KNormal.ExtTuple(x) -> ExtTuple(Id.L(x))
+  | KNormal.GetE(x, y, t) -> GetE(x, y, t)
+  | KNormal.PutE(x, y, z, t) -> PutE(x, y, z, t)
+  | KNormal.ExtArray(x, t) -> ExtArray(Id.L(x), t)
+  | KNormal.ExtTuple(x, t) -> ExtTuple(Id.L(x), t)
   | KNormal.ExtFunApp(x, ys) ->
     (*if x = "int_of_float" then FToI(List.hd ys)
     else if x = "float_of_int" then IToF(List.hd ys)
@@ -196,8 +201,10 @@ let rec print_t = function
                                 print_string " ")
   | Get (s1, s2) -> print_string (s1 ^ " . (" ^ s2 ^ " ");
   | Put (s1, s2, s3) -> print_string (s1 ^ " . (" ^ s2 ^ ") <- " ^ s3 ^ " ");
-  | ExtArray (L l) -> print_string ("extarray " ^ l)
-  | ExtTuple (L l) -> print_string ("exttuple " ^ l)
+  | GetE (s1, s2, _) -> print_string (s1 ^ " . (" ^ s2 ^ " ");
+  | PutE (s1, s2, s3, _) -> print_string (s1 ^ " . (" ^ s2 ^ ") <- " ^ s3 ^ " ");
+  | ExtArray (L l, _) -> print_string ("extarray " ^ l)
+  | ExtTuple (L l, _) -> print_string ("exttuple " ^ l)
 
 let print_fundef { name = (Id.L(x), t); args = yts; formal_fv = zts; body = e } =
   print_string ("\nname = " ^ x ^ ": ");
