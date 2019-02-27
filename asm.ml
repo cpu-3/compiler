@@ -26,6 +26,8 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
   | Fless of Id.t * Id.t
+  | FLE of Id.t * Id.t
+  | FEq of Id.t * Id.t
   | FSqrt of Id.t
   | FAbs of Id.t
   | FToI of Id.t

@@ -24,6 +24,8 @@ and exp =
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
   | Fless of Id.t * Id.t
+  | FLE of Id.t * Id.t
+  | FEq of Id.t * Id.t
   | FSqrt of Id.t
   | FAbs of Id.t
   | FToI of Id.t

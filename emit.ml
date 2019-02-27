@@ -116,6 +116,8 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
   | NonTail(x), FMul(y, z) -> Printf.bprintf buf "\tfmul.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FDiv(y, z) -> Printf.bprintf buf "\tfdiv.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), Fless(y, z) -> Printf.bprintf buf "\tflt.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
+  | NonTail(x), FEq(y, z) -> Printf.bprintf buf "\tfeq.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
+  | NonTail(x), FLE(y, z) -> Printf.bprintf buf "\tfle.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FSqrt(y) -> Printf.bprintf buf "\tfsqrt.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FAbs(y) -> Printf.bprintf buf "\tfabs.s\t%s, %s\n" (reg x) (reg y)
   | NonTail(x), FToI(y) -> Printf.bprintf buf "\tfcvt.w.s\t%s, %s\n" (reg x) (reg y)
@@ -242,8 +244,12 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
        Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
     );
     g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg reg_tmp) b_cont_opt
+  | NonTail(z), IfFEq(x, y, Ans(Li(1)), Ans(Li(0))) ->
+    g' buf b_cont_opt (NonTail(z), FEq(x, y))
   | NonTail(z), IfFEq(x, y, e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "fne" "feq.s" (reg x) (reg y) b_cont_opt
+  | NonTail(z), IfFLE(x, y, Ans(Li(1)), Ans(Li(0))) ->
+    g' buf b_cont_opt (NonTail(z), FLE(x, y))
   | NonTail(z), IfFLE(x, y, e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "fgt" "fle.s" (reg x) (reg y) b_cont_opt
   (* 関数呼び出しの仮想命令の実装 (caml2html: emit_call) *)
