@@ -68,7 +68,8 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
   (* 末尾でなかったら計算結果をdestにセット (caml2html: emit_nontail) *)
   | NonTail(_), Nop -> ()
   | NonTail("x0"), Li(0) -> ()
-  | NonTail(x), Li(i) -> if -2048 <= i && i < 2048 then
+  | NonTail(x), Li(i) ->
+    if -2048 <= i && i < 2048 then
       Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg x) i
     else
       Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
@@ -169,21 +170,33 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
   | Tail, IfEq(x, C(0), e1, e2) ->
     g'_tail_if buf e1 e2 "beq" "bne" (reg x) (reg "%x0")
   | Tail, IfEq(x, C(y), e1, e2) ->
-    Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
+    (if -2048 <= y && y < 2048 then
+      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+    else
+      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+   );
     g'_tail_if buf e1 e2 "beq" "bne" (reg x) (reg reg_tmp)
   | Tail, IfLE(x, V(y), e1, e2) ->
     g'_tail_if buf e1 e2 "ble" "bgt" (reg x) (reg y)
   | Tail, IfLE(x, C(0), e1, e2) ->
     g'_tail_if buf e1 e2 "ble" "bgt" (reg x) (reg "%x0")
   | Tail, IfLE(x, C(y), e1, e2) ->
-    Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
+    (if -2048 <= y && y < 2048 then
+      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+    else
+      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+   );
     g'_tail_if buf e1 e2 "ble" "bgt" (reg x) (reg reg_tmp)
   | Tail, IfGE(x, V(y), e1, e2) ->
     g'_tail_if buf e1 e2 "bge" "blt" (reg x) (reg y)
   | Tail, IfGE(x, C(0), e1, e2) ->
     g'_tail_if buf e1 e2 "bge" "blt" (reg x) (reg "%x0")
   | Tail, IfGE(x, C(y), e1, e2) ->
-    Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
+    (if -2048 <= y && y < 2048 then
+      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+    else
+      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+   );
     g'_tail_if buf e1 e2 "bge" "blt" (reg x) (reg reg_tmp)
   | Tail, IfFEq(x, y, e1, e2) ->
     g'_tail_if buf e1 e2 "fne" "feq.s" (reg x) (reg y)
@@ -194,21 +207,33 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
   | NonTail(z), IfEq(x, C(0), e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg "%x0") b_cont_opt
   | NonTail(z), IfEq(x, C(y), e1, e2) ->
-    Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
+    (if -2048 <= y && y < 2048 then
+      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+    else
+      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+   );
     g'_non_tail_if buf (NonTail(z)) e1 e2 "beq" "bne" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfLE(x, V(y), e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg y) b_cont_opt
   | NonTail(z), IfLE(x, C(0), e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg "%x0") b_cont_opt
   | NonTail(z), IfLE(x, C(y), e1, e2) ->
-    Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
+    (if -2048 <= y && y < 2048 then
+      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+    else
+      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+   );
     g'_non_tail_if buf (NonTail(z)) e1 e2 "ble" "bgt" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfGE(x, V(y), e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg y) b_cont_opt
   | NonTail(z), IfGE(x, C(0), e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg "%x0") b_cont_opt
   | NonTail(z), IfGE(x, C(y), e1, e2) ->
-    Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y;
+    (if -2048 <= y && y < 2048 then
+      Printf.bprintf buf "\taddi\t%s, x0, %d\n" (reg reg_tmp) y
+    else
+      Printf.bprintf buf "\tli\t%s, %d\n" (reg reg_tmp) y
+   );
     g'_non_tail_if buf (NonTail(z)) e1 e2 "bge" "blt" (reg x) (reg reg_tmp) b_cont_opt
   | NonTail(z), IfFEq(x, y, e1, e2) ->
     g'_non_tail_if buf (NonTail(z)) e1 e2 "fne" "feq.s" (reg x) (reg y) b_cont_opt
