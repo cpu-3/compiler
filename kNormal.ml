@@ -199,8 +199,8 @@ let rec g env = function (* K正規化ルーチン本体 (caml2html: knormal_g) 
   | Syntax.Put(e1, e2, e3) ->
       (match g env e1 with
         | ExtArray(x, _), Type.Array(t) ->
-          insert_let (g env e1)
-            (fun y -> insert_let (g env e2)
+          insert_let (g env e2)
+            (fun y -> insert_let (g env e3)
                 (fun z -> PutE(x, y, z, t), Type.Unit))
         | _ ->
           insert_let (g env e1)

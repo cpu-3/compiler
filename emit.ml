@@ -24,7 +24,7 @@ let locate x =
     | y :: zs when x = y -> 0 :: List.map succ (loc zs)
     | y :: zs -> List.map succ (loc zs) in
   loc !stackmap
-let offset x = List.hd (locate x)
+let offset x = if (locate x) = [] then failwith x else List.hd (locate x)
 let stacksize () = (List.length !stackmap)
 
 let reg r =

@@ -2,7 +2,8 @@
 
 open Asm
 
-let globals =  [("n_objects",16);
+let globals =  [
+     ("n_objects",16);
      ("dummy",17);
      ("objects",29);
      ("screen",89);
@@ -42,7 +43,7 @@ let globals =  [("n_objects",16);
 
 let tag2addr tag =
   match List.assoc_opt tag globals with
-  | Some(v) -> C(v)
+  | Some(v) -> (Printf.printf "%s => %d\n" tag v; C(v))
   | None -> V(tag)
 
 let data = ref [] (* 浮動小数点数の定数テーブル (caml2html: virtual_data) *)
