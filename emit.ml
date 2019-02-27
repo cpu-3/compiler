@@ -1,12 +1,12 @@
 open Asm
 
-let program_start = 453
+let program_start = 456
 let f_table = ref []
 
 let tag2addr tag =
     match List.assoc_opt tag !f_table with
-     | Some(v) -> C(v)
-     | None -> V(tag)
+     | Some(v) when v < 2048 -> C(v)
+     | _ -> V(tag)
 
 let stackset = ref S.empty (* すでにSaveされた変数の集合 (caml2html: emit_stackset) *)
 let stackmap = ref [] (* Saveされた変数の、スタックにおける位置 (caml2html: emit_stackmap) *)
@@ -73,8 +73,14 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     else
       Printf.bprintf buf "\tli\t%s, %d\n" (reg x) i
   | NonTail(x), FLi(Id.L(l)) ->
-    Printf.bprintf buf "\tli\t%s, %s\n" (reg reg_tmp) l;
-    Printf.bprintf buf "\tflw\t%s, 0(%s)\n" (reg x) (reg reg_tmp)
+    (match tag2addr l with
+    | C(v) -> (
+        Printf.bprintf buf "\tflw\t%s, %d(zero)\n" (reg x) v
+      )
+    | V(l) ->
+      Printf.bprintf buf "\tli\t%s, %s\n" (reg reg_tmp) l;
+      Printf.bprintf buf "\tflw\t%s, 0(%s)\n" (reg x) (reg reg_tmp)
+    )
   | NonTail(x), SetL(Id.L(y)) ->
     Printf.bprintf buf "\tli\t%s, %s\n" (reg x) y;
   | NonTail(x), Mv(y) when x = y -> ()
@@ -307,9 +313,12 @@ let h oc { name = Id.L(x); args = xs; fargs = ys; body = e; ret = _ } =
 
 let f oc (Prog(data, fundefs, e)) =
   Format.eprintf "generating assembly...@.";
+  let base_idx = ref program_start in
   if data <> [] then
     (List.iter
        (fun (Id.L(x), d) ->
+          f_table := (x, !base_idx) :: !f_table;
+          base_idx := !base_idx + 1;
           Printf.fprintf oc "%s:\t # %f\n" x d;
           Printf.fprintf oc "\t.word\t%d\n" (Int32.to_int (Int32.bits_of_float d)))
        data);
