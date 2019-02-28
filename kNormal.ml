@@ -9,7 +9,6 @@ type t = (* K正規化後の式 (caml2html: knormal_t) *)
   | Float of float
   | Neg of Id.t
   | Xor of Id.t * Id.t
-  | And of Id.t * Id.t
   | Add of Id.t * Id.t
   | Sub of Id.t * Id.t
   | Mul of Id.t * Id.t
@@ -43,7 +42,7 @@ and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 let rec fv = function (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) | ExtTuple(_) -> S.empty
   | Neg(x) | FNeg(x) | GetE(_, x, _) | FAddF(x, _) | FSubFL(x, _) | FSubFR(x, _) | FMulF(x, _) -> S.singleton x
-  | And(x, y) | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) |
+  | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) |
     FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | PutE(_, x, y, _) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
   | Let((x, t), e1, e2) -> S.union (fv e1) (S.remove x (fv e2))
