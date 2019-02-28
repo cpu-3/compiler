@@ -9,27 +9,38 @@ and exp =
   | SetL of Id.l
   | Mv of Id.t
   | Neg of Id.t
+  | Xor of Id.t * Id.t
   | Add of Id.t * id_or_imm
   | Sub of Id.t * id_or_imm
   | Mul of Id.t * id_or_imm
   | Div of Id.t * id_or_imm
   | Sll of Id.t * id_or_imm
-  | Lw of Id.t * id_or_imm
-  | Sw of Id.t * Id.t * id_or_imm
+  | Lw of id_or_imm * id_or_imm
+  | Sw of Id.t * id_or_imm * id_or_imm
   | FMv of Id.t
   | FNeg of Id.t
   | FAdd of Id.t * Id.t
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | Fless of Id.t * Id.t
+  | FLE of Id.t * Id.t
+  | FEq of Id.t * Id.t
   | FSqrt of Id.t
-  | Lfd of Id.t * id_or_imm
-  | Stfd of Id.t * Id.t * id_or_imm
+  | FAddF of Id.t * float (* fadd with famous value *)
+  | FSubFL of Id.t * float (* fsub with famous value at left *)
+  | FSubFR of Id.t * float (* fsub with famous value at right *)
+  | FMulF of Id.t * float
+  | FAbs of Id.t
+  | FToI of Id.t
+  | IToF of Id.t
+  | Lfd of id_or_imm * id_or_imm
+  | Stfd of Id.t * id_or_imm * id_or_imm
   | Comment of string
   (* virtual instructions *)
   | IfEq of Id.t * id_or_imm * t * t
   | IfLE of Id.t * id_or_imm * t * t
-  | IfGE of Id.t * id_or_imm * t * t
+  | IfGE of Id.t * id_or_imm * t * t (* 左右対称ではないので必要 *)
   | IfFEq of Id.t * Id.t * t * t
   | IfFLE of Id.t * Id.t * t * t
   (* closure address, integer arguments, and float arguments *)
@@ -46,8 +57,12 @@ val print_t : t -> unit
 val print_exp : exp -> unit
 val print_prog : prog -> unit
 
-val fletd : Id.t * exp * t -> t (* shorthand of Let for float *)
-val seq : exp * t -> t (* shorthand of Let for unit *)
+val fletd : Id.t * exp * t -> t (* shorthand of Let for float *) val seq : exp * t -> t (* shorthand of Let for unit *)
+
+val famous_fval: (float * string) list
+
+val is_famous_fval: float -> bool
+val fval2reg: float -> string
 
 val regs : Id.t array
 val fregs : Id.t array

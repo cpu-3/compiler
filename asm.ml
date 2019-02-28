@@ -1,5 +1,25 @@
 (* PowerPC assembly with a few virtual instructions *)
 
+let famous_fval = [
+  (3.141593, "f31");
+  (-1.000000, "f30");
+  (0.000000, "f29");
+  (1.000000, "f28");
+  (0.017453293, "f27");
+  (0.01, "f26");
+  (255.0, "f25");
+  (20.0, "f24");
+  (0.05, "f23");
+  (2.0, "f22");
+  (0.5, "f21");
+]
+
+let is_famous_fval f = match List.assoc_opt f famous_fval with
+  | Some(_) -> true
+  | None -> false
+
+let fval2reg f = List.assoc f famous_fval
+
 type id_or_imm = V of Id.t | C of int
 type t = (* 命令の列 (caml2html: sparcasm_t) *)
   | Ans of exp
@@ -11,22 +31,33 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | SetL of Id.l
   | Mv of Id.t
   | Neg of Id.t
+  | Xor of Id.t * Id.t
   | Add of Id.t * id_or_imm
   | Sub of Id.t * id_or_imm
   | Mul of Id.t * id_or_imm
   | Div of Id.t * id_or_imm
   | Sll of Id.t * id_or_imm
-  | Lw of Id.t * id_or_imm
-  | Sw of Id.t * Id.t * id_or_imm
+  | Lw of id_or_imm * id_or_imm
+  | Sw of Id.t * id_or_imm * id_or_imm
   | FMv of Id.t
   | FNeg of Id.t
   | FAdd of Id.t * Id.t
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | Fless of Id.t * Id.t
+  | FLE of Id.t * Id.t
+  | FEq of Id.t * Id.t
   | FSqrt of Id.t
-  | Lfd of Id.t * id_or_imm
-  | Stfd of Id.t * Id.t * id_or_imm
+  | FAddF of Id.t * float (* fadd with famous value *)
+  | FSubFL of Id.t * float (* fsub with famous value at left *)
+  | FSubFR of Id.t * float (* fsub with famous value at right *)
+  | FMulF of Id.t * float
+  | FAbs of Id.t
+  | FToI of Id.t
+  | IToF of Id.t
+  | Lfd of id_or_imm * id_or_imm
+  | Stfd of Id.t * id_or_imm * id_or_imm
   | Comment of string
   (* virtual instructions *)
   | IfEq of Id.t * id_or_imm * t * t
@@ -53,7 +84,7 @@ let regs = (* Array.init 24 (fun i -> Printf.sprintf "_R_%d" i) *)
      "%t0"; "%t2"; "%t3"; "%t4"; "%t5"; "%t6";
      "%s2"; "%s3"; "%s4"; "%s5"; "%s6"; "%s7";
      "%s8"; "%s9"; "%s10"; "%s11" |]
-let fregs = Array.init 32 (fun i -> Printf.sprintf "%%f%d" i)
+let fregs = Array.init (32 - (List.length famous_fval)) (fun i -> Printf.sprintf "%%f%d" i)
 let allregs = Array.to_list regs
 let allfregs = Array.to_list fregs
 let reg_cl = regs.(Array.length regs - 1) (* closure address (caml2html: sparcasm_regcl) *)
@@ -73,11 +104,13 @@ let rec remove_and_uniq xs = function
 (* free variables in the order of use (for spilling) (caml2html: sparcasm_fv) *)
 let fv_id_or_imm = function V(x) -> [x] | _ -> []
 let rec fv_exp = function
-  | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) | Restore(_) | AddHp(_) | ReadHp -> []
-  | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | FSqrt(x) | Save(x, _) -> [x]
-  | Add(x, y') | Sub(x, y') | Mul(x, y') | Div(x, y') | Sll(x, y') | Lfd(x, y') | Lw(x, y') -> x :: fv_id_or_imm y'
-  | Sw(x, y, z') | Stfd(x, y, z') -> x :: y :: fv_id_or_imm z'
-  | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) -> [x; y]
+  | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) | Restore(_) AddHp(_) | ReadHp  -> []
+  | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | FToI(x) | IToF(x) | FSqrt(x) | FAbs(x) | Save(x, _) -> [x]
+  | FAddF(x, _) | FSubFL(x, _) | FSubFR(x, _) | FMulF(x, _) -> [x]
+  | Add(x, y') | Sub(x, y') | Mul(x, y') | Div(x, y') | Sll(x, y') -> x :: fv_id_or_imm y'
+  | Lfd(x, y') | Lw(x, y') -> fv_id_or_imm x @ fv_id_or_imm y'
+  | Sw(x, y, z') | Stfd(x, y, z') -> x :: (fv_id_or_imm y @ fv_id_or_imm z')
+  | Xor(x, y) | FAdd(x, y) | FSub(x, y) | FMul(x, y) | FDiv(x, y) | Fless(x, y) -> [x; y]
   | IfEq(x, y', e1, e2) | IfLE(x, y', e1, e2) | IfGE(x, y', e1, e2) ->  x :: fv_id_or_imm y' @ remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
   | IfFEq(x, y, e1, e2) | IfFLE(x, y, e1, e2) -> x :: y :: remove_and_uniq S.empty (fv e1 @ fv e2) (* uniq here just for efficiency *)
   | CallCls(x, ys, zs) -> x :: ys @ zs
@@ -85,7 +118,7 @@ let rec fv_exp = function
 and fv = function
   | Ans(exp) -> fv_exp exp
   | Let((x, t), exp, e) ->
-      fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
+    fv_exp exp @ remove_and_uniq (S.singleton x) (fv e)
 let fv e = remove_and_uniq S.empty (fv e)
 
 let rec concat e1 xt e2 =
@@ -115,22 +148,27 @@ and print_exp = function
   | SetL(Id.L(l)) -> print_string ("setl " ^ l)
   | Mv(s) -> print_string ("mv " ^ s)
   | Neg(s) -> print_string ("neg " ^ s)
+  | Xor(s1, s2) -> (print_string ("xor " ^ s1 ^ " " ^ s2 ^ " "))
   | Add(s, i) -> (print_string ("add " ^ s ^ " "); print_id_or_imm i)
   | Sub(s, i) -> (print_string ("sub " ^ s ^ " "); print_id_or_imm i)
   | Mul(s, i) -> (print_string ("mul " ^ s ^ " "); print_id_or_imm i)
   | Div(s, i) -> (print_string ("div " ^ s ^ " "); print_id_or_imm i)
   | Sll(s, i) -> (print_string ("sll " ^ s ^ " "); print_id_or_imm i)
-  | Lw(s, i) -> (print_string ("lw " ^ s ^ " "); print_id_or_imm i)
-  | Sw(s1, s2, i) -> (print_string ("sw " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
+  | Lw(s, i) -> (print_string ("lw " ^ "hoge" ^ " "); print_id_or_imm i)
+  | Sw(s1, s2, i) -> (print_string ("sw " ^ s1 ^ " " ^ "hoge" ^ " "); print_id_or_imm i)
   | FMv(s) -> print_string ("fmv " ^ s)
   | FNeg(s) -> print_string ("fneg " ^ s)
   | FAdd(s1, s2) -> print_string ("fadd " ^ s1 ^ " " ^ s2 ^ " ")
   | FSub(s1, s2) -> print_string ("fsub " ^ s1 ^ " " ^ s2 ^ " ")
   | FMul(s1, s2) -> print_string ("fmul " ^ s1 ^ " " ^ s2 ^ " ")
   | FDiv(s1, s2) -> print_string ("fdiv " ^ s1 ^ " " ^ s2 ^ " ")
+  | Fless(s1, s2) -> print_string ("fless " ^ s1 ^ " " ^ s2 ^ " ")
   | FSqrt(s1) -> print_string ("fsqrt " ^ s1 ^ " ")
-  | Lfd(s, i) -> (print_string ("lfd " ^ s ^ " "); print_id_or_imm i)
-  | Stfd(s1, s2, i) -> (print_string ("stfd " ^ s1 ^ " " ^ s2 ^ " "); print_id_or_imm i)
+  | FAbs(s1) -> print_string ("fabs " ^ s1 ^ " ")
+  | FToI(s1) -> print_string ("ftoi " ^ s1 ^ " ")
+  | IToF(s1) -> print_string ("itof " ^ s1 ^ " ")
+  | Lfd(s, i) -> (print_string ("lfd " ^ "hoge" ^ " "); print_id_or_imm i)
+  | Stfd(s1, s2, i) -> (print_string ("stfd " ^ s1 ^ " " ^ "hoge" ^ " "); print_id_or_imm i)
   | Comment(s) -> (print_string ("comment " ^ s))
   (* virtual instructions *)
   | IfEq(s, i, t1, t2) -> (print_string ("ifeq " ^ s ^ " ");
@@ -152,26 +190,26 @@ and print_exp = function
                            print_string (" else ");
                            print_t t2; print_string " ")
   | IfFEq(s1, s2, t1, t2) -> (print_string ("ifeq " ^ s1 ^ " " ^ s2 ^ " ");
-                           print_string (" then ");
-                           print_t t1;
-                           print_string (" else ");
-                           print_t t2; print_string " ")
+                              print_string (" then ");
+                              print_t t1;
+                              print_string (" else ");
+                              print_t t2; print_string " ")
   | IfFLE(s1, s2, t1, t2) -> (print_string ("ifeq " ^ s1 ^ " " ^ s2 ^ " ");
-                           print_string (" then ");
-                           print_t t1;
-                           print_string (" else ");
-                           print_t t2; print_string " ")
+                              print_string (" then ");
+                              print_t t1;
+                              print_string (" else ");
+                              print_t t2; print_string " ")
   (* closure address, integer arguments, and float arguments *)
   | CallCls(s, ints, floats) ->
-      (print_string ("callcls " ^ s ^ " ints: ");
-       List.iter print_string ints;
-       print_string " floats: ";
-       List.iter print_string floats)
+    (print_string ("callcls " ^ s ^ " ints: ");
+     List.iter print_string ints;
+     print_string " floats: ";
+     List.iter print_string floats)
   | CallDir(Id.L(l), ints, floats) ->
-      (print_string ("calldir " ^ l ^ " ints: ");
-       List.iter print_string ints;
-       print_string " floats: ";
-       List.iter print_string floats)
+    (print_string ("calldir " ^ l ^ " ints: ");
+     List.iter print_string ints;
+     print_string " floats: ";
+     List.iter print_string floats)
   | Save(s1, s2) -> print_string ("save " ^ s1 ^ " " ^ s2)
   | Restore(s) -> print_string ("restore " ^ s)
   | ReadHp -> print_string "mv %hp"
@@ -180,22 +218,21 @@ and print_exp = function
 
 let print_prog (Prog(fls, topfs, e)) =
   (print_string "\n(name, float) =\n";
-  List.iter (fun (l, f) ->
-    let Id.L(l) = l in
-    print_string ("(" ^ l ^ " ");
-    print_float f;
-    print_string ") ";) fls;
-  print_string "\nfundef list =\n";
-  List.iter (fun fd ->
-    let Id.L(n) = fd.name in
-    print_string ("\tname: " ^ n ^ "\n\targs: (");
-    List.iter(fun x -> print_string(x ^ ",")) fd.args;
-    print_string (")\n\tbody: ");
-    print_newline ();
-    print_t(fd.body);
-    print_string ("\n");) topfs;
-  print_string "\n";
-  print_t e)
+   List.iter (fun (l, f) ->
+       let Id.L(l) = l in
+       print_string ("(" ^ l ^ " ");
+       print_float f;
+       print_string ") ";) fls;
+   print_string "\nfundef list =\n";
+   List.iter (fun fd ->
+       let Id.L(n) = fd.name in
+       print_string ("\tname: " ^ n ^ "\n\targs: (");
+       List.iter(fun x -> print_string(x ^ ",")) fd.args;
+       print_string (")\n\tbody: ");
+       print_t(fd.body);
+       print_string ("\n");) topfs;
+   print_string "\n";
+   print_t e)
 
 let latency exp = match exp with
   | FLi(_) | Lw(_) -> 1
