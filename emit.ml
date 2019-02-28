@@ -114,6 +114,16 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
   | NonTail(x), FAdd(y, z) -> Printf.bprintf buf "\tfadd.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FSub(y, z) -> Printf.bprintf buf "\tfsub.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FMul(y, z) -> Printf.bprintf buf "\tfmul.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
+
+  | NonTail(x), FAddF(y, z) ->
+    Printf.bprintf buf "\tfadd.s\t%s, %s, %s\n" (reg x) (reg y) (fval2reg z)
+  | NonTail(x), FSubFL(y, z) ->
+    Printf.bprintf buf "\tfsub.s\t%s, %s, %s\n" (reg x) (fval2reg z) (reg y)
+  | NonTail(x), FSubFR(y, z) ->
+    Printf.bprintf buf "\tfsub.s\t%s, %s, %s\n" (reg x) (reg y) (fval2reg z)
+  | NonTail(x), FMulF(y, z) ->
+    Printf.bprintf buf "\tfmul.s\t%s, %s, %s\n" (reg x) (reg y) (fval2reg z)
+
   | NonTail(x), FDiv(y, z) -> Printf.bprintf buf "\tfdiv.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), Fless(y, z) -> Printf.bprintf buf "\tflt.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
   | NonTail(x), FEq(y, z) -> Printf.bprintf buf "\tfeq.s\t%s, %s, %s\n" (reg x) (reg y) (reg z)
@@ -155,7 +165,7 @@ and g' buf b_cont_opt = function (* 各命令のアセンブリ生成 (caml2html
     Printf.bprintf buf "$(addsp)";
     Printf.bprintf buf "\tret\n"
   | Tail, (FLi _ | FMv _ | FNeg _ | FAdd _ | FSub _ | FMul _ | FDiv _ | FSqrt _
-          | Fless _ | FAbs _
+          | Fless _ | FAbs _ | FAddF _ | FSubFL _ | FSubFR _ | FMulF _
           | Lfd _ | FToI _ | IToF _ as exp) ->
     g' buf b_cont_opt (NonTail(fregs.(0)), exp);
     Printf.bprintf buf "$(addsp)";
@@ -366,7 +376,22 @@ let f oc (Prog(data, fundefs, e)) =
   let buffer = Buffer.create 128 in
   g buffer None (NonTail("x0"), e);
   let n = stacksize () in
+  (List.iter
+     (fun (v, x) ->
+        Printf.fprintf oc "freg_%s:\t # %f\n" x v;
+        Printf.fprintf oc "\t.word\t%d\n"
+          (Int32.to_int (Int32.bits_of_float v));
+     )
+     famous_fval
+  );
   Printf.fprintf oc "_min_caml_start: # main entry point\n";
+  (List.iter
+     (fun (v, x) ->
+        Printf.fprintf oc "\tli t1, freg_%s\n" x;
+        Printf.fprintf oc "\tflw %s, 0(t1)\n" x
+     )
+     famous_fval
+  );
   if n = 0 then ()
   else Printf.fprintf oc "\tadd\tsp, sp, %d\n" (-n);
   Buffer.output_buffer oc buffer

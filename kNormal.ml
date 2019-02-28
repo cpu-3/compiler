@@ -18,6 +18,10 @@ type t = (* K正規化後の式 (caml2html: knormal_t) *)
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | FAddF of Id.t * float (* fadd with famous value *)
+  | FSubFL of Id.t * float (* fsub with famous value at left *)
+  | FSubFR of Id.t * float (* fsub with famous value at right *)
+  | FMulF of Id.t * float
   | IfEq of Id.t * Id.t * t * t (* 比較 + 分岐 (caml2html: knormal_branch) *)
   | IfLE of Id.t * Id.t * t * t (* 比較 + 分岐 *)
   | Let of (Id.t * Type.t) * t * t
@@ -37,7 +41,7 @@ and fundef = { name : Id.t * Type.t; args : (Id.t * Type.t) list; body : t }
 
 let rec fv = function (* 式に出現する（自由な）変数 (caml2html: knormal_fv) *)
   | Unit | Int(_) | Float(_) | ExtArray(_) | ExtTuple(_) -> S.empty
-  | Neg(x) | FNeg(x) | GetE(_, x, _) -> S.singleton x
+  | Neg(x) | FNeg(x) | GetE(_, x, _) | FAddF(x, _) | FSubFL(x, _) | FSubFR(x, _) | FMulF(x, _) -> S.singleton x
   | Xor(x, y) | Add(x, y) | Sub(x, y) | Mul(x, y) | Div(x, y) | FAdd(x, y) |
     FSub(x, y) | FMul(x, y) | FDiv(x, y) | Get(x, y) | PutE(_, x, y, _) -> S.of_list [x; y]
   | IfEq(x, y, e1, e2) | IfLE(x, y, e1, e2) -> S.add x (S.add y (S.union (fv e1) (fv e2)))
@@ -229,6 +233,10 @@ let rec print_t nml =
     | FSub (s1, s2) -> print_string (s1 ^ " -. " ^ s2)
     | FMul (s1, s2) -> print_string (s1 ^ " *. " ^ s2)
     | FDiv (s1, s2) -> print_string (s1 ^ " /. " ^ s2)
+    | FAddF (s1, s2) -> Printf.printf ("%s +. %f") s1 s2
+    | FSubFL (s1, s2) -> Printf.printf ("%s -. %f") s1 s2
+    | FSubFR (s1, s2) -> Printf.printf ("%f -. %s") s2 s1
+    | FMulF (s1, s2) -> Printf.printf ("%s *. %f") s1 s2
     | IfEq (s1, s2, t1, t2) -> (print_string ("IF " ^ s1 ^ " = " ^ s2 ^ " THEN ");
                                 print_t t1;
                                 print_string " ELSE ";

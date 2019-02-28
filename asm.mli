@@ -27,6 +27,10 @@ and exp =
   | FLE of Id.t * Id.t
   | FEq of Id.t * Id.t
   | FSqrt of Id.t
+  | FAddF of Id.t * float (* fadd with famous value *)
+  | FSubFL of Id.t * float (* fsub with famous value at left *)
+  | FSubFR of Id.t * float (* fsub with famous value at right *)
+  | FMulF of Id.t * float
   | FAbs of Id.t
   | FToI of Id.t
   | IToF of Id.t
@@ -51,6 +55,11 @@ val print_t : t -> unit
 val print_prog : prog -> unit
 
 val fletd : Id.t * exp * t -> t (* shorthand of Let for float *) val seq : exp * t -> t (* shorthand of Let for unit *)
+
+val famous_fval: (float * string) list
+
+val is_famous_fval: float -> bool
+val fval2reg: float -> string
 
 val regs : Id.t array
 val fregs : Id.t array

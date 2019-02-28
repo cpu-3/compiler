@@ -13,6 +13,10 @@ type t =
   | FSub of Id.t * Id.t
   | FMul of Id.t * Id.t
   | FDiv of Id.t * Id.t
+  | FAddF of Id.t * float (* fadd with famous value *)
+  | FSubFL of Id.t * float (* fsub with famous value at left *)
+  | FSubFR of Id.t * float (* fsub with famous value at right *)
+  | FMulF of Id.t * float
   | IfEq of Id.t * Id.t * t * t
   | IfLE of Id.t * Id.t * t * t
   | Let of (Id.t * Type.t) * t * t

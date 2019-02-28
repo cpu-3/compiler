@@ -1,5 +1,25 @@
 (* PowerPC assembly with a few virtual instructions *)
 
+let famous_fval = [
+  (3.141593, "f31");
+  (-1.000000, "f30");
+  (0.000000, "f29");
+  (1.000000, "f28");
+  (0.017453293, "f27");
+  (0.01, "f26");
+  (255.0, "f25");
+  (20.0, "f24");
+  (0.05, "f23");
+  (2.0, "f22");
+  (0.5, "f21");
+]
+
+let is_famous_fval f = match List.assoc_opt f famous_fval with
+  | Some(_) -> true
+  | None -> false
+
+let fval2reg f = List.assoc f famous_fval
+
 type id_or_imm = V of Id.t | C of int
 type t = (* 命令の列 (caml2html: sparcasm_t) *)
   | Ans of exp
@@ -29,6 +49,10 @@ and exp = (* 一つ一つの命令に対応する式 (caml2html: sparcasm_exp) *
   | FLE of Id.t * Id.t
   | FEq of Id.t * Id.t
   | FSqrt of Id.t
+  | FAddF of Id.t * float (* fadd with famous value *)
+  | FSubFL of Id.t * float (* fsub with famous value at left *)
+  | FSubFR of Id.t * float (* fsub with famous value at right *)
+  | FMulF of Id.t * float
   | FAbs of Id.t
   | FToI of Id.t
   | IToF of Id.t
@@ -58,7 +82,7 @@ let regs = (* Array.init 24 (fun i -> Printf.sprintf "_R_%d" i) *)
      "%t0"; "%t2"; "%t3"; "%t4"; "%t5"; "%t6";
      "%s2"; "%s3"; "%s4"; "%s5"; "%s6"; "%s7";
      "%s8"; "%s9"; "%s10"; "%s11" |]
-let fregs = Array.init 32 (fun i -> Printf.sprintf "%%f%d" i)
+let fregs = Array.init (32 - (List.length famous_fval)) (fun i -> Printf.sprintf "%%f%d" i)
 let allregs = Array.to_list regs
 let allfregs = Array.to_list fregs
 let reg_cl = regs.(Array.length regs - 1) (* closure address (caml2html: sparcasm_regcl) *)
@@ -80,6 +104,7 @@ let fv_id_or_imm = function V(x) -> [x] | _ -> []
 let rec fv_exp = function
   | Nop | Li(_) | FLi(_) | SetL(_) | Comment(_) | Restore(_) -> []
   | Mv(x) | Neg(x) | FMv(x) | FNeg(x) | FToI(x) | IToF(x) | FSqrt(x) | FAbs(x) | Save(x, _) -> [x]
+  | FAddF(x, _) | FSubFL(x, _) | FSubFR(x, _) | FMulF(x, _) -> [x]
   | Add(x, y') | Sub(x, y') | Mul(x, y') | Div(x, y') | Sll(x, y') -> x :: fv_id_or_imm y'
   | Lfd(x, y') | Lw(x, y') -> fv_id_or_imm x @ fv_id_or_imm y'
   | Sw(x, y, z') | Stfd(x, y, z') -> x :: (fv_id_or_imm y @ fv_id_or_imm z')
