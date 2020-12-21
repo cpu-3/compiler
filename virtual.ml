@@ -133,20 +133,20 @@ let rec g env = function (* 式の仮想マシンコード生成 (caml2html: vir
      | Type.Float -> Ans(FMv(x))
      | _ -> Ans(Mv(x)))
   | Closure.MakeCls((x, t), { Closure.entry = l; Closure.actual_fv = ys }, e2) -> (* クロージャの生成 (caml2html: virtual_makecls) *)
-    (* Closureのアドレスをセットしてから、自由変数の値をストア *)
-    let e2' = g (M.add x t env) e2 in
-    let offset, store_fv =
-      expand
-        (List.map (fun y -> (y, M.find y env)) ys)
-        (1, e2')
-        (fun y offset store_fv -> seq(Stfd(y, V(x), C(offset)), store_fv))
-        (fun y _ offset store_fv -> seq(Sw(y, V(x), C(offset)), store_fv)) in
-    Let((x, t), Mv(reg_hp),
-        Let((reg_hp, Type.Int), Add(reg_hp, C(align offset)),
-            let z = Id.genid "l" in
-            Let((z, Type.Int), SetL(l),
-                seq(Sw(z, V(x), C(0)),
-                    store_fv))))
+      (* Closureのアドレスをセットしてから、自由変数の値をストア *)
+      let e2' = g (M.add x t env) e2 in
+      let offset, store_fv =
+        expand
+          (List.map (fun y -> (y, M.find y env)) ys)
+          (4, e2')
+          (fun y offset store_fv -> seq(Stfd(y, V(x), C(offset)), store_fv))
+          (fun y _ offset store_fv -> seq(Sw(y, V(x), C(offset)), store_fv)) in
+      Let((x, t), ReadHp,
+          Let((reg_hp, Type.Int), AddHp(C(align offset)),
+              let z = Id.genid "l" in
+              Let((z, Type.Int), SetL(l),
+                  seq(Sw(z, x, C(0)),
+                      store_fv))))
   | Closure.AppCls(x, ys) ->
     let (int, float) = separate (List.map (fun y -> (y, M.find y env)) ys) in
     Ans(CallCls(x, int, float))
@@ -157,16 +157,16 @@ let rec g env = function (* 式の仮想マシンコード生成 (caml2html: vir
      with Not_found -> failwith "hoge")
 
   | Closure.Tuple(xs) -> (* 組の生成 (caml2html: virtual_tuple) *)
-    let y = Id.genid "t" in
-    let (offset, store) =
-      expand
-        (List.map (fun x -> (x, M.find x env)) xs)
-        (0, Ans(Mv(y)))
-        (fun x offset store -> seq(Stfd(x, V(y), C(offset)), store))
-        (fun x _ offset store -> seq(Sw(x, V(y), C(offset)), store))  in
-    Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), Mv(reg_hp),
-        Let((reg_hp, Type.Int), Add(reg_hp, C(align offset)),
-            store))
+      let y = Id.genid "t" in
+      let (offset, store) =
+        expand
+          (List.map (fun x -> (x, M.find x env)) xs)
+          (0, Ans(Mv(y)))
+          (fun x offset store -> seq(Stfd(x, V(y), C(offset)), store))
+          (fun x _ offset store -> seq(Sw(x, V(y), C(offset)), store))  in
+      Let((y, Type.Tuple(List.map (fun x -> M.find x env) xs)), ReadHp,
+          Let((reg_hp, Type.Int), AddHp(C(align offset)),
+              store))
   | Closure.LetTuple(xts, y, e2) ->
     let s = Closure.fv e2 in
     let (offset, load) =

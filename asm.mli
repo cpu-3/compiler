@@ -46,12 +46,15 @@ and exp =
   (* closure address, integer arguments, and float arguments *)
   | CallCls of Id.t * Id.t list * Id.t list
   | CallDir of Id.l * Id.t list * Id.t list
-  | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 (caml2html: sparcasm_save) *)
-  | Restore of Id.t (* スタック変数から値を復元 (caml2html: sparcasm_restore) *)
+  | Save of Id.t * Id.t (* レジスタ変数の値をスタック変数へ保存 *)
+  | Restore of Id.t (* スタック変数から値を復元 *)
+  | ReadHp
+  | AddHp of id_or_imm
 type fundef = { name : Id.l; args : Id.t list; fargs : Id.t list; body : t; ret : Type.t }
 type prog = Prog of (Id.l * float) list * fundef list * t
 
 val print_t : t -> unit
+val print_exp : exp -> unit
 val print_prog : prog -> unit
 
 val fletd : Id.t * exp * t -> t (* shorthand of Let for float *) val seq : exp * t -> t (* shorthand of Let for unit *)
@@ -77,3 +80,5 @@ val fv : t -> Id.t list
 val concat : t -> Id.t * Type.t -> t -> t
 
 val align : int -> int
+
+val latency: exp -> int
